@@ -1,0 +1,30 @@
+{
+  "name": "@ralphwetzel/node-red-context-monitor",
+  "version": "0.0.1",
+  "description": "",
+  "main": "monitor.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ralphwetzel/node-red-context-monitor.git"
+  },
+  "keywords": [
+    "node-red"
+  ],
+  "node-red": {
+    "nodes": {
+      "context-monitor": "monitor.js"
+    }
+  },
+  "author": "Ralph Wetzel",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/ralphwetzel/node-red-context-monitor/issues"
+  },
+  "homepage": "https://github.com/ralphwetzel/node-red-context-monitor#readme",
+  "dependencies": {
+    "fs-extra": "^11.1.1"
+  }
+}
