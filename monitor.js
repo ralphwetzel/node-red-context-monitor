@@ -184,6 +184,7 @@ let create_wrapper = function(node_id, flow_id, ctx) {
             debugger
                 let handler = {
                     get: (target, property, receiver) => {
+                        // See https://discourse.nodered.org/t/node-red-context-monitor-a-node-to-monitor-a-node-red-context/82555/8?u=bartbutenaers
                         if (property === IDENTITY) {
                             return target
                         }
