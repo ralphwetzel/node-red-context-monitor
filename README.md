@@ -1,5 +1,8 @@
 # @ralphwetzel/node-red-context-monitor
 
+<img alt="flow" src="https://raw.githubusercontent.com/ralphwetzel/node-red-context-monitor/main/resources/preview.png"
+    style="min-width: 138px; width: 138px; align: center; border: 1px solid lightgray;"/>
+
 A [Node-RED](https://www.nodered.org) node to monitor a [context](https://nodered.org/docs/user-guide/context).
     
 This node allows to setup the reference to a context, then sends a message when this context is written to.
@@ -11,6 +14,10 @@ The message sent will carry the current value of the context as `msg.payload`. M
 It is possible to monitor an infinite number of context variables with each instance of this node.
 
 This node supports the three [context scope levels](https://nodered.org/docs/user-guide/context#context-scopes) `Global`, `Flow` & `Node`.
+
+### Installation
+
+Use the Node-RED palette manager to install this node.
 
 ### Details
 
