@@ -175,14 +175,40 @@ let create_wrapper = function(node_id, flow_id, ctx) {
         }
     });
 
+    const IDENTITY = Symbol('proxy_target_identity')
+
     Object.defineProperties(wrapper, {
         get: {
             value: function(key, storage, callback) {
-                return context.get(key, storage, callback);
+                let gettedValue = context.get(key, storage, callback);
+            debugger
+                let handler = {
+                    get: (target, property, receiver) => {
+                        if (property === IDENTITY) {
+                            return target
+                        }
+                        return Reflect.get(target, property, receiver)
+                    },
+                    set: function(obj, property, value) {
+                        let previous_value = Object.assign({}, obj);
+                        obj[property] = value;;
+                        trigger(context_id + ":" + key, obj, previous_value);
+                        return true;
+                    }
+                };
+
+                return new Proxy(gettedValue, handler);
             }
         },
         set: {
             value: function(key, value, storage, callback) {
+                debugger
+                
+                if (value[IDENTITY]) {
+                    // Get the original target value
+                    value = value[IDENTITY];
+                }
+
                 // this is the monitoring function!
                 let previous_value = context.get(key, storage);
                 let res = context.set(key, value, storage, callback);
