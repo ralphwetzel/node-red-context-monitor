@@ -1,0 +1,449 @@
+<!--
+    node-red-context-monitor by @ralphwetzel
+    https://github.com/ralphwetzel/node-red-context-monitor
+    License: MIT
+-->
+
+<script type="text/javascript">
+    RED.nodes.registerType('context-monitor',{
+        category: 'input',
+        color: '#b0b0b0',
+        defaults: {
+            name: {value:""},
+            monitoring: {value:[]}
+        },
+        inputs: 0,
+        outputs: 2,
+        outputLabels: ["context set", "context changed"],
+        icon: "font-awesome/fa-dot-circle-o",
+        label: function() {
+            if (this.name) {
+                return this.name;
+            }
+            let l = this.monitoring.length;
+            if (l > 1) {
+                return `${l} context keys`;
+            }
+            let key = this.monitoring[0]?.key;
+            if (key && key.length > 0) {
+                return key;
+            }
+            return "ctx monitor";
+        },
+        paletteLabel: "ctx monitor",
+        oneditprepare: function() {
+
+            let node = this;
+
+            // the (modified) context definition
+            let ctx = [];
+
+            function add_context(tpl) {
+                let c = {
+                    "scope": tpl.scope ?? "global",
+                    "flow": tpl.flow,
+                    "node": tpl.node,
+                    "key": tpl.key ?? ""
+                }
+                ctx.push(c);
+                return c;
+            }
+
+            $('#node-input-context-container').css('min-height','150px').css('min-width','450px').editableList({
+                addItem: function(container, index, cfg) {
+
+                    let data = add_context(cfg);
+                    data.index = index;
+
+                    // cfg is the data object from the node definition, stored in the 'data' store.
+                    // We shall keep cfg untouched to ensure automated (non-)dirty check by the runtime.
+                    // Thus we exchange the data stored against the 'data' object we just created.
+                    container.data('data', data);
+
+                    if (Object.keys(cfg).length < 1) {
+                        node.dirty = true;
+                    }
+
+                    let _initing = true;
+                    let fragment = document.createDocumentFragment();
+
+                    let line_scope = $('<div class="form-row" style="margin-bottom: 6px">');
+                    // $('<label for="context-scope" style="margin-left:10px; width: 90px"><i class="fa fa-tag"></i> Scope</label>').appendTo(line_scope);
+                    $('<label for="context-scope" style="margin-left:10px; width: 90px">Scope:</label>').appendTo(line_scope);
+                    $(`<input type="text" id="context-scope-${index}" placeholder="Scope">`).appendTo(line_scope);
+                    line_scope.appendTo(fragment);
+
+                    let line_flow = $('<div class="form-row" style="margin-bottom: 6px">');
+                    // $(`<label for="context-scope-flows-${index}"" style="margin-left:10px; width: 90px"><i class="fa fa-tag"></i> Flows</label>`).appendTo(line_flow);
+                    $(`<label for="context-scope-flows-${index}" style="margin-left:10px; width: 90px">Flows:</label>`).appendTo(line_flow);
+                    $(`<input type="text" id="context-scope-flows-${index}" placeholder="Flows">`).appendTo(line_flow);
+                    line_flow.appendTo(fragment);
+
+                    // let line_group = $('<div class="form-row" style="margin-bottom: 6px">');
+                    // // $(`<label for="context-scope-groups-${index}"" style="margin-left:10px; width: 90px"><i class="fa fa-tag"></i> Groups</label>`).appendTo(line_group);
+                    // $(`<label for="context-scope-groups-${index}"" style="margin-left:10px; width: 90px">Groups: </label>`).appendTo(line_group);
+                    // $(`<input type="text" id="context-scope-groups-${index}" placeholder="Groups">`).appendTo(line_group);
+                    // line_group.appendTo(fragment);
+
+                    let line_node = $('<div class="form-row" style="margin-bottom: 6px">');
+                    // $(`<label for="context-scope-nodes-${index}"" style="margin-left:10px; width: 90px"><i class="fa fa-tag"></i> Nodes</label>`).appendTo(line_node);
+                    $(`<label for="context-scope-nodes-${index}" style="margin-left:10px; width: 90px">Nodes: </label>`).appendTo(line_node);
+                    $(`<input type="text" id="context-scope-nodes-${index}" placeholder="Nodes">`).appendTo(line_node);
+                    line_node.appendTo(fragment);
+
+                    let line_key = $('<div class="form-row" style="margin-bottom: 0px">');
+                    // $(`<label for="context-scope-key-${index}"" style="margin-left:10px; width: 90px"><i class="fa fa-tag"></i> Key</label>`).appendTo(line_key);
+                    $(`<label for="context-scope-key-${index}" style="margin-left:10px; width: 90px">Key: </label>`).appendTo(line_key);
+                    $(`<input type="text" id="context-scope-key-${index}" placeholder="Context Variable Key">`).appendTo(line_key);
+                    line_key.appendTo(fragment);
+
+                    container[0].appendChild(fragment);
+
+                    $(`#context-scope-${index}`).typedInput({type:"scope", types:[{
+                        value: "scope",
+                        options: [
+                            { value: "global", label: "Global"},
+                            { value: "flow", label: "Flow"},
+                            // { value: "group", label: "Group"},
+                            { value: "node", label: "Node"},
+                        ]
+                    }]}).on("change", function (event, type, value) {
+                        switch (value) {
+                            case "global": {
+                                line_flow.hide();
+                                // line_group.hide();
+                                line_node.hide();
+                                break;
+                            }
+                            case "flow": {
+                                line_flow.show();
+                                // line_group.hide();
+                                line_node.hide();
+                                break;
+                            }
+                            case "group": {
+                                line_flow.show();
+                                // line_group.show();
+                                line_node.hide();
+                                break;
+                            }
+                            case "node": {
+                                line_flow.show();
+                                // line_group.hide();
+                                line_node.show();
+                                break;
+                            }
+                        }
+                        if (!_initing) {
+                            data.scope = value;
+
+                            data.flow = data.flow ?? $(`#context-scope-flows-${index}`).typedInput("value");
+                            // data.group = data.group ?? $(`#context-scope-groups-${index}`).typedInput("value");
+                            data.node = data.node ?? $(`#context-scope-nodes-${index}`).typedInput("value");
+                            node.dirty = true;
+                        }
+
+                        switch (data.scope) {
+                            // case "group": {
+                            //     $(`#context-scope-key-${index}`).prop("disabled", data.group == "");
+                            //     break;
+                            // }
+                            case "node": {
+                                $(`#context-scope-key-${index}`).prop("disabled", data.node == "");
+                                break;
+                            }
+                        }
+
+                    });
+
+                    let flow_opts = [];
+                    let group_opts = [];
+                    let node_opts = [];
+
+                    RED.nodes.eachWorkspace( cb => {
+                        flow_opts.push({
+                            value: cb.id,
+                            label: cb.label
+                        });
+                    });
+
+                    $(`#context-scope-flows-${index}`).typedInput({type:"flow", types:[{
+                        value: "flow",
+                        options: flow_opts
+                    }]}).on("change", function (event, type, value) {
+
+                        // RED.nodes.eachGroup( g => {
+                        //     console.log(g)
+                        //     if (g.z == value) {
+                        //         group_opts.push({
+                        //             value: g.id,
+                        //             label: g.label ?? g.id
+                        //         });
+                        //     }
+                        // });
+                        // let gol = group_opts.length;
+                        // $(`#context-scope-groups-${index}`).typedInput('disable', gol < 1);
+                        // if (gol < 1) {
+                        //     group_opts.push({
+                        //         value: undefined,
+                        //         label: "No group in this flow"
+                        //     })
+                        // }
+                        // $(`#context-scope-groups-${index}`).typedInput('types', [{options: group_opts}]);
+                        // $(`#context-scope-groups-${index}`).parent().find(".red-ui-typedInput-option-label").css("color", gol < 1 ? "darkgrey" : "var(--red-ui-form-text-color)");
+                        // if ($(`#context-scope-${index}`).typedInput("value") == "group") {
+                        //     $(`#context-scope-key-${index}`).prop("disabled", gol < 1);
+                        // }
+                                                
+                        RED.nodes.eachNode( n => {
+
+                            if (n.z == value) {
+
+                                // from 25-status.html
+                                let nodeDef = RED.nodes.getType(n.type);
+                                let label;
+                                let sublabel;
+                                if (nodeDef) {
+                                    let l = nodeDef.label;
+                                    label = (typeof l === "function" ? l.call(n) : l)||"";
+                                    // sublabel = n.type;
+                                    // if (sublabel.indexOf("subflow:") === 0) {
+                                    //     let subflowId = sublabel.substring(8);
+                                    //     let subflow = RED.nodes.subflow(subflowId);
+                                    //     sublabel = "subflow : "+subflow.name;
+                                    // }
+                                }
+                                if (!nodeDef || !label) {
+                                    label = n.type;
+                                }
+
+                                node_opts.push({
+                                    value: n.id,
+                                    label: label
+                                });
+                            }
+                        });
+                        let nol = node_opts.length;
+                        $(`#context-scope-nodes-${index}`).typedInput('disable', nol < 1);
+                        if (nol < 1) {
+                            node_opts.push({
+                                value: undefined,
+                                label: "No nodes in this flow"
+                            })
+                        }
+                        $(`#context-scope-nodes-${index}`).typedInput('types', [{options: node_opts}]);
+                        $(`#context-scope-nodes-${index}`).parent().find(".red-ui-typedInput-option-label").css("color", nol < 1 ? "darkgrey" : "var(--red-ui-form-text-color)");
+                        if ($(`#context-scope-${index}`).typedInput("value") == "node") {
+                            $(`#context-scope-key-${index}`).prop("disabled", nol < 1);
+                        }
+
+                        if (!_initing) {
+                            data.flow = value;
+                            node.dirty = true;
+                        }
+                    });
+
+                    // $(`#context-scope-groups-${index}`).typedInput({type:"group", types:[{
+                    //     value: "group",
+                    //     options: [
+                    //         { value: "test", label: "TEST"}
+                    //     ]
+                    // }]}).on("change", function (event, type, value) {
+                    //     if (!_initing) {
+                    //         data.group = value;
+                    //         node.dirty = true;
+                    //     }
+                    // });
+
+                    $(`#context-scope-nodes-${index}`).typedInput({type:"node", types:[{
+                        value: "node"
+                    }]}).on("change", function (event, type, value) {
+                        if (!_initing) {
+                            data.node = value;
+                            node.dirty = true;
+                        }
+                        $(`#context-scope-key-${index}`).prop("disabled", false);
+
+                    });
+
+                    $(`#context-scope-key-${index}`).change( function () {
+                        if (!_initing) {
+                            data.key = $(this).val();
+                            node.dirty = true;
+                        }
+                    });
+
+                    // initialize the form
+                    $(`#context-scope-${index}`).typedInput("value", data.scope);
+                    
+                    let f = data.flow || flow_opts[0]?.value;
+                    if (f) {
+                        if (flow_opts.filter( opts => {
+                            return opts?.value == f;
+                        }).length > 0) {
+                            $(`#context-scope-flows-${index}`).typedInput("value", f);
+                        }
+                    }
+
+                    // let g = data.group || group_opts[0]?.value;
+                    // if (g) {
+                    //     if (group_opts.filter( opts => {
+                    //         return opts.value == g;
+                    //     }).length > 0) {
+                    //         $(`#context-scope-groups-${index}`).typedInput("value", g);
+                    //     }
+                    // }
+
+                    let n = data.node || node_opts[0]?.value;
+                    if (n) {
+                        if (node_opts.filter( opts => {
+                            return opts?.value == n;
+                        }).length > 0) {
+                            $(`#context-scope-nodes-${index}`).typedInput("value", n);
+                        }
+                    }
+
+                    $(`#context-scope-key-${index}`).val(data.key);
+
+                    _initing = false;
+                },
+                removable: true,
+                removeItem: function (data) {
+                    let index = data.index;
+                    ctx.splice(index, 1);
+
+                    ctx.forEach( (c, index) => {
+                        c.index = index;
+                    })
+
+                    node.dirty = true;
+                },
+                sortable: true,
+                sortItem: function (rows) {
+
+                    // recreate ctx
+                    ctx = [];
+
+                    rows.forEach( (row, index) => {
+                        row.data.index = index;
+                        ctx.push(row.data);
+                    });
+
+                    node.dirty = true;
+                }
+                
+            });
+
+            try {
+                node.monitoring.forEach(data => {
+                    $('#node-input-context-container').editableList('addItem', data);
+                });
+            } catch {}
+
+            node._ctx = ctx;
+
+        },
+        oneditresize: function (size) {
+            let el = $('#node-input-context-container').parent();
+            let top = el.position().top;
+            el.height(size.height - top);
+
+            let ti = $('[id*=context-scope-flows]:first');
+            let width;
+            if (ti.length > 0) {
+                width = ti.next().outerWidth();
+            }
+            if (width) {
+                $('[id*=context-scope-key]').outerWidth(width);
+            }
+        },
+        oneditsave: function () {
+            let node = this;
+            if (!node.dirty) {
+                return;
+            }
+
+            let ctx = node._ctx;
+            delete node._ctx;
+
+            ctx.forEach( data => {
+                delete data.index;
+
+                switch (data.scope) {
+                    case "global":
+                        delete data.flow;
+                    case "flow":
+                        delete data.group;
+                    // case "group":
+                    //     delete data.node;
+                    //     break;
+                    case "node":
+                        delete data.group;
+                }
+
+            })
+
+            node.monitoring = ctx;
+            return true;
+        }
+    });
+</script>
+
+<script type="text/html" data-template-name="context-monitor">
+    <div class="form-row">
+        <label for="node-input-name"><i class="fa fa-tag"></i> Name</label>
+        <input type="text" id="node-input-name" placeholder="Name">
+    </div>
+    <!-- <div class="form-row">
+        <label for="node-input-monitoring"><i class="fa fa-dot-circle-o"></i> Context</label>
+        <input type="text" id="node-input-monitoring" placeholder="Context">
+    </div> -->
+    <div class="form-row" style="margin-bottom:0;">
+        <label style="min-width:200px;"><i class="fa fa-dot-circle-o"></i> <span>Monitoring context definition</span></label>
+    </div>
+    <div class="form-row node-input-context-def-row">
+        <ol id="node-input-context-container"></ol>
+    </div>
+</script>
+
+<script type="text/markdown" data-help-name="context-monitor">
+
+A [Node-RED](https://www.nodered.org) node to monitor a [context](https://nodered.org/docs/user-guide/context).
+    
+<img alt="flow" src="https://raw.githubusercontent.com/ralphwetzel/node-red-context-monitor/main/resources/preview.png"
+    style="min-width: 138px; width: 138px; align: center; border: 1px solid lightgray;"/>
+
+### What it does
+
+This node allows to setup the reference to a context, then sends a message when this context is written to.
+
+It sends a dedicated message on a separate port in case it detects that the value of the context was changed.
+
+The message sent will carry the current value of the context as `msg.payload`. Monitoring details will be provided as `msg.monitoring`.
+
+It is possible to monitor an infinite number of contexts with each instance of this node.
+
+This node supports the three [context scope levels](https://nodered.org/docs/user-guide/context#context-scopes) `Global`, `Flow` & `Node`.
+
+### Installation
+
+Use the Node-RED palette manager to install this node.
+
+### Details
+
+To monitor a `Global` scope context, set the scope to `Global` and provide the context key.
+
+<img alt="global" src="resources/@ralphwetzel/node-red-context-monitor/global.png"
+    style="min-width: 474px; width: 474px; align: center; border: 1px solid lightgray;"/>
+
+To monitor a `Flow` scope context, set the scope to `Flow`, then select the owning flow and provide the context key.
+
+<img alt="flow" src="https://raw.githubusercontent.com/ralphwetzel/node-red-context-monitor/main/resources/flow.png"
+    style="min-width: 474px; width: 474px; align: center; border: 1px solid lightgray;"/>
+
+To monitor a `Node` scope context, set the scope to `Node`, then select flow & node and provide the context key.
+
+<img alt="node" src="https://raw.githubusercontent.com/ralphwetzel/node-red-context-monitor/main/resources/node.png"
+    style="min-width: 474px; width: 474px; align: center; border: 1px solid lightgray;"/>
+
+> Hint: This node doesn't create a context. It just tries to reference to those already existing. If you're referencing a non-existing context, no harm will happen.
