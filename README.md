@@ -3,8 +3,11 @@
 A [Node-RED](https://www.nodered.org) node to monitor a [context](https://nodered.org/docs/user-guide/context).
     
 This node allows to setup the reference to a context variable, then sends a message when this context variable is written to.
+
 It sends a dedicated message on a separate port in case it detects that the value of the context variable changed.
+
 The message sent will carry the current value of the context as `msg.payload`. Monitoring details will be provided as `msg.monitoring`.
+
 It is possible to monitor an infinite number of context variables with each instance of this node.
 
 This node supports the three [context scope levels](https://nodered.org/docs/user-guide/context#context-scopes) `Global`, `Flow` & `Node`.
