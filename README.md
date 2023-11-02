@@ -24,14 +24,17 @@ Use the Node-RED palette manager to install this node.
 ### Details
 
 To monitor a `Global` scope context, set the scope to `Global` and provide the context key.
+
 <img alt="global" src="https://raw.githubusercontent.com/ralphwetzel/node-red-context-monitor/main/resources/global.png"
     style="min-width: 474px; width: 474px; align: center; border: 1px solid lightgray;"/>
 
 To monitor a `Flow` scope context, set the scope to `Flow`, then select the owning flow and provide the context key.
+
 <img alt="flow" src="https://raw.githubusercontent.com/ralphwetzel/node-red-context-monitor/main/resources/flow.png"
     style="min-width: 474px; width: 474px; align: center; border: 1px solid lightgray;"/>
 
 To monitor a `Node` scope context, set the scope to `Node`, then select flow & node and provide the context key.
+
 <img alt="node" src="https://raw.githubusercontent.com/ralphwetzel/node-red-context-monitor/main/resources/node.png"
     style="min-width: 474px; width: 474px; align: center; border: 1px solid lightgray;"/>
 
