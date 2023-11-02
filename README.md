@@ -9,6 +9,8 @@ A [Node-RED](https://www.nodered.org) node to monitor a [context](https://nodere
 
 This node allows to setup the reference to a context, then sends a message when this context is written to.
 
+> Disclaimer: You need to `set` a (new) value to the context to trigger this node, e.g. `flow.set('value', 10)` or write to the context using a `change` node. 
+
 It sends a dedicated message on a separate port in case it detects that the value of the context was changed.
 
 The message sent will carry the current value of the context as `msg.payload`. Monitoring details will be provided as `msg.monitoring`.
