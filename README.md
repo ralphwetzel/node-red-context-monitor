@@ -1,7 +1,7 @@
 # @ralphwetzel/node-red-context-monitor
 
 <img alt="flow" src="https://raw.githubusercontent.com/ralphwetzel/node-red-context-monitor/main/resources/preview.png"
-    style="min-width: 138px; width: 138px; align: center; border: 1px solid lightgray;"/>
+    style="min-width: 250px; width: 250px; align: center; border: 1px solid lightgray;"/>
 
 A [Node-RED](https://www.nodered.org) node to monitor a [context](https://nodered.org/docs/user-guide/context).
     
