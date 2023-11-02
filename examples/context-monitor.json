@@ -1,0 +1,177 @@
+[
+    {
+        "id": "4980f94dd2c07b62",
+        "type": "tab",
+        "label": "Context Monitoring Example",
+        "disabled": false,
+        "info": "",
+        "env": []
+    },
+    {
+        "id": "f2874060375785b7",
+        "type": "inject",
+        "z": "4980f94dd2c07b62",
+        "name": "",
+        "props": [
+            {
+                "p": "payload"
+            },
+            {
+                "p": "topic",
+                "vt": "str"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "",
+        "payloadType": "date",
+        "x": 140,
+        "y": 80,
+        "wires": [
+            [
+                "c096819863211fb9"
+            ]
+        ]
+    },
+    {
+        "id": "db53945bf5a57413",
+        "type": "debug",
+        "z": "4980f94dd2c07b62",
+        "name": "debug 88",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "false",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 660,
+        "y": 80,
+        "wires": []
+    },
+    {
+        "id": "c096819863211fb9",
+        "type": "change",
+        "z": "4980f94dd2c07b62",
+        "name": "",
+        "rules": [
+            {
+                "t": "set",
+                "p": "flow_test",
+                "pt": "flow",
+                "to": "payload",
+                "tot": "msg"
+            },
+            {
+                "t": "set",
+                "p": "global_test",
+                "pt": "global",
+                "to": "hello!",
+                "tot": "str"
+            }
+        ],
+        "action": "",
+        "property": "",
+        "from": "",
+        "to": "",
+        "reg": false,
+        "x": 300,
+        "y": 80,
+        "wires": [
+            [
+                "b1d17d7418f7a28f"
+            ]
+        ]
+    },
+    {
+        "id": "db3afa60f9a080a8",
+        "type": "debug",
+        "z": "4980f94dd2c07b62",
+        "name": "debug on set",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 330,
+        "y": 180,
+        "wires": []
+    },
+    {
+        "id": "b1d17d7418f7a28f",
+        "type": "function",
+        "z": "4980f94dd2c07b62",
+        "name": "set node context",
+        "func": "context.set(\"node_test\", 15);\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 490,
+        "y": 80,
+        "wires": [
+            [
+                "db53945bf5a57413"
+            ]
+        ]
+    },
+    {
+        "id": "42634cda458394e4",
+        "type": "context-monitor",
+        "z": "4980f94dd2c07b62",
+        "name": "",
+        "monitoring": [
+            {
+                "scope": "node",
+                "flow": "4980f94dd2c07b62",
+                "node": "b1d17d7418f7a28f",
+                "key": "node_test"
+            },
+            {
+                "scope": "global",
+                "key": "global_test"
+            },
+            {
+                "scope": "flow",
+                "flow": "4980f94dd2c07b62",
+                "node": "f2874060375785b7",
+                "key": "flow_test"
+            }
+        ],
+        "x": 140,
+        "y": 200,
+        "wires": [
+            [
+                "db3afa60f9a080a8"
+            ],
+            [
+                "12a15905dd250321"
+            ]
+        ]
+    },
+    {
+        "id": "12a15905dd250321",
+        "type": "debug",
+        "z": "4980f94dd2c07b62",
+        "name": "debug on change",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 350,
+        "y": 220,
+        "wires": []
+    }
+]
