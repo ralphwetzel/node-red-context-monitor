@@ -157,8 +157,8 @@
                     });
 
                     let flow_opts = [];
-                    let group_opts = [];
-                    let node_opts = [];
+                    // let group_opts = [];
+                    let node_opts;
 
                     RED.nodes.eachWorkspace( cb => {
                         flow_opts.push({
@@ -194,7 +194,8 @@
                         // if ($(`#context-scope-${index}`).typedInput("value") == "group") {
                         //     $(`#context-scope-key-${index}`).prop("disabled", gol < 1);
                         // }
-                                                
+                                           
+                        node_opts = [];
                         RED.nodes.eachNode( n => {
 
                             if (n.z == value) {
