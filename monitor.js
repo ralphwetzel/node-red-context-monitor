@@ -50,9 +50,9 @@ function scan_for_require_path(req_path) {
 
     if (found) {
         if (!fs.existsSync(found)) {
-        console.log(error_header)
-        console.log("Failed to calculate correct patch path.");
-        console.log("Please raise an issue @ our GitHub repository, stating the following information:");
+            console.log(error_header)
+            console.log("Failed to calculate correct patch path.");
+            console.log("Please raise an issue @ our GitHub repository, stating the following information:");
             console.log("> sanned for:", req_path);
             console.log("> found:", found);
             return;
@@ -152,40 +152,109 @@ let create_wrapper = function(node_id, flow_id, ctx) {
         }
     });
 
-    const IDENTITY = Symbol('proxy_target_identity')
+    // const IDENTITY = Symbol('proxy_target_identity')
 
     Object.defineProperties(wrapper, {
         get: {
             value: function(key, storage, callback) {
-                let gettedValue = context.get(key, storage, callback);
-            debugger
-                let handler = {
-                    get: (target, property, receiver) => {
-                        // See https://discourse.nodered.org/t/node-red-context-monitor-a-node-to-monitor-a-node-red-context/82555/8?u=bartbutenaers
-                        if (property === IDENTITY) {
-                            return target
-                        }
-                        return Reflect.get(target, property, receiver)
-                    },
-                    set: function(obj, property, value) {
-                        let previous_value = Object.assign({}, obj);
-                        obj[property] = value;;
-                        trigger(context_id + ":" + key, obj, previous_value);
-                        return true;
-                    }
-                };
 
-                return new Proxy(gettedValue, handler);
+                let create_object_wrapper = function(object, getter_key) {
+
+                    let handler = {
+                        get: (target, property, receiver) => {
+                            let getted = Reflect.get(target, property, receiver);
+
+                            // if getted is an object, wrap this (again) 
+                            // to ensure monitoring in case of direct reference access
+                            if (
+                                typeof getted === 'object' &&
+                                !Array.isArray(getted) &&
+                                getted !== null
+                            ) { 
+                                let prop_chain = property;
+                                if (getter_key?.length) {
+                                    prop_chain = getter_key + "." + prop_chain;
+                                }
+                                return create_object_wrapper(getted, prop_chain);
+                            }
+                            return getted;
+                        },
+                        set: function(target, propertyKey, value, receiver) {
+                            // this is the monitoring function!
+                            let previous_value = Reflect.get(target, propertyKey, receiver);
+                            res = Reflect.set(target, propertyKey, value, receiver);
+
+                            let prop_chain = propertyKey;
+                            if (getter_key?.length) {
+                                prop_chain = getter_key + "." + prop_chain;
+                            }
+
+                            trigger(context_id + ":" + key, value, previous_value, prop_chain);
+                            return res;
+                        }
+                    };
+
+                    return new Proxy(object, handler);
+
+                }
+
+                let create_array_wrapper = function(object, getter_key) {
+
+                    let handler = {
+                        get: (target, property, receiver) => {
+                            let getted = Reflect.get(target, property, receiver);
+
+                            if (
+                                typeof getted === 'object' &&
+                                Array.isArray(getted)
+                            ) { 
+                                let prop_chain = property;
+                                if (getter_key?.length) {
+                                    prop_chain = getter_key + "." + prop_chain;
+                                }
+                                return create_object_wrapper(getted, prop_chain);
+                            }
+                            return getted;
+                        },
+                        set: function(target, propertyKey, value, receiver) {
+                            // this is the monitoring function!
+                            let previous_value = Reflect.get(target, propertyKey, receiver);
+                            res = Reflect.set(target, propertyKey, value, receiver);
+
+                            let prop_chain = propertyKey;
+                            if (getter_key?.length) {
+                                prop_chain = getter_key + "." + prop_chain;
+                            }
+
+                            trigger(context_id + ":" + key, value, previous_value, prop_chain);
+                            return res;
+                        }
+                    };
+
+                    return new Proxy(object, handler);
+
+                }
+
+                let getted_value = context.get(key, storage, callback);
+                if (
+                    typeof getted_value === 'object' &&
+                    !Array.isArray(getted_value) &&
+                    getted_value !== null
+                ) { 
+                    return create_object_wrapper(getted_value);
+                }
+                return getted_value;
+
             }
         },
         set: {
             value: function(key, value, storage, callback) {
-                debugger
+                // debugger
                 
-                if (value[IDENTITY]) {
-                    // Get the original target value
-                    value = value[IDENTITY];
-                }
+                // if (value[IDENTITY]) {
+                //     // Get the original target value
+                //     value = value[IDENTITY];
+                // }
 
                 // this is the monitoring function!
                 let previous_value = context.get(key, storage);
@@ -207,7 +276,7 @@ let create_wrapper = function(node_id, flow_id, ctx) {
 // *****
 // The function to trigger the context-monitoring nodes
 
-let trigger = function(context_key_id, new_value, previous_value) {
+let trigger = function(context_key_id, new_value, previous_value, prop_chain) {
 
     function trigger_receivers(cache, message) {
         cache.forEach(node => {
@@ -217,6 +286,11 @@ let trigger = function(context_key_id, new_value, previous_value) {
                 let msg = _RED.util.cloneMessage(message);
 
                 msg.topic = node.data.key;
+
+                if (prop_chain?.length) {
+                    msg.topic += "." + prop_chain
+                }
+
                 msg.monitoring = {
                     "scope": node.data.scope,
                 }
@@ -244,7 +318,10 @@ let trigger = function(context_key_id, new_value, previous_value) {
     let cache = set_cache[context_key_id] ?? [];
     let msg = {
         payload: new_value,
-        previous: previous_value
+        previous: previous_value,
+        // do this once already here!
+        // ToDo: For non primitives: run a fast comparisor
+        changed: new_value != previous_value
     }
     trigger_receivers(cache, msg);
 
@@ -332,9 +409,11 @@ module.exports = function(RED) {
             
             // unfold & check if changed
             let prev = msg.previous;
+            let changed = msg.changed;
             delete msg.previous;
+            delete msg.changed;
 
-            if (msg.payload !== prev) {
+            if (changed) {
                 // if changed, clone & emit @ second output terminal
                 let m = RED.util.cloneMessage(msg);
                 delete m._msgid;
