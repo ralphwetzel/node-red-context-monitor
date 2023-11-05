@@ -41,7 +41,8 @@
             function add_context(tpl) {
                 let c = {
                     "scope": tpl.scope ?? "global",
-                    "flow": tpl.flow,
+                    // decode "this flow" marker
+                    "flow": ("." === tpl.flow) ? node.z : tpl.flow,
                     "node": tpl.node,
                     "key": tpl.key ?? ""
                 }
@@ -382,6 +383,10 @@
                         delete data.group;
                 }
 
+                if (data.flow == node.z) {
+                    // set a special marker that 'this flow' shall be referenced
+                    data.flow = ".";
+                }
             })
 
             node.monitoring = ctx;
