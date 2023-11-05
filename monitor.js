@@ -320,6 +320,9 @@ module.exports = function(RED) {
         config.monitoring.forEach( data => {
 
             if (!data.key) return;
+            if ("." === data.flow) {
+                data.flow = node.z;
+            }
 
             let ctx = "global";
             switch (data.scope) {
