@@ -16,73 +16,50 @@ let set_cache = {};
 
 let _RED;
 
-// ****
-// Copied from node-red-mcu-plugin:
-// Patch support function: Calculate the path to a to-be-required file
+// *****
+// Patch support: Scan the require database for the path to a to-be-required file
 
-function get_require_path(req_path) {
+let require_cache = {
+    ".": require.main
+}
 
-    let rm = require.main.path;
+function scan_for_require_path(req_path) {
 
-    try {
-        let stat = fs.lstatSync(rm);
-        if (!stat.isDirectory()) {
-            console.log(error_header);
-            console.log("require.main.path is not a directory.");
-            return;
+    let runner = 0;
+    let found;
+
+    while (runner < Object.keys(require_cache).length) {
+
+        let key = Object.keys(require_cache)[runner];
+        let entry = require_cache[key];
+
+        if (entry.id?.includes(req_path)) {
+            found = entry.id;
+            break;
         }
-    } catch (err) {
-        console.log(err);
-        console.log(error_header);
-        if (err.code == 'ENOENT') {
-            console.log("require.main.path not found.");
-        } else {
-            console.log("Error while handling require.main.path.")
-        }
-        return null;
+
+        let cc = entry.children;
+        cc.forEach(c => {
+            if (!(c.id in require_cache)) {
+                require_cache[c.id] = c;
+            }
+        });
+    
+        runner += 1;
     }
 
-    // split path into segments ... the safe way
-    rm = path.normalize(rm);
-    let rms = []
-    let rmp;
-    do {
-        rmp = path.parse(rm);
-        if (rmp.base.length > 0) {
-            rms.unshift(rmp.base);
-            rm = rmp.dir;    
-        }
-    } while (rmp.base.length > 0)
-
-    let rmsl = rms.length;
-
-    if (rms.includes("packages"))  {
-        if (rms[rmsl-3]=="packages" && rms[rmsl-2]=="node_modules" && rms[rmsl-1]=="node-red") {
-            // dev:     [...]/node-red/packages/node_modules/node-red
-            // install: [...]/lib/node_modules/node-red
-            // pi:      /lib/node_modules/node-red/
-
-            // dev:     [...]/node-red/packages/node_modules/@node-red
-            // install: [...]/lib/node_modules/node-red/node_modules/@node-red
-            // pi:      /lib/node_modules/node-red/node_modules/@node-red
-            rms.splice(-2);
-        }
-    }
-
-    // compose things again...
-    req_path = req_path.split("/");
-    let p = path.join(rmp.root, ...rms, ...req_path);
-
-    if (!fs.existsSync(p)) {
+    if (found) {
+        if (!fs.existsSync(found)) {
         console.log(error_header)
         console.log("Failed to calculate correct patch path.");
         console.log("Please raise an issue @ our GitHub repository, stating the following information:");
-        console.log("> require.main.path:", require.main.path);
-        console.log("> utils.js:", p);
-        return null;
+            console.log("> sanned for:", req_path);
+            console.log("> found:", found);
+            return;
+        }
     }
 
-    return p;
+    return found;
 }
 
 // End: "Patch support ..."
@@ -91,7 +68,7 @@ function get_require_path(req_path) {
 // *****
 // Make available the Context Manager
 
-const context_manager_path = get_require_path("node_modules/@node-red/runtime/lib/nodes/context/index.js");
+const context_manager_path = scan_for_require_path("node_modules/@node-red/runtime/lib/nodes/context/index.js");
 if (!context_manager_path) return;
 const context_manager = require(context_manager_path);
 
