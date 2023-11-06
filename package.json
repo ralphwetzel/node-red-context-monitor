@@ -4,7 +4,7 @@
   "description": "A Node-RED node to monitor a context.",
   "main": "monitor.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "mocha \"test/**/*_spec.js\""
   },
   "repository": {
     "type": "git",
@@ -27,9 +27,14 @@
   },
   "homepage": "https://github.com/ralphwetzel/node-red-context-monitor#readme",
   "dependencies": {
-    "fs-extra": "^11.1.1"
+    "fs-extra": "^11.1.1",
+    "node-red": "^3.1.0"
   },
   "engines": {
-    "node": ">=16.0.0"
-}
+    "node": ">=14.0.0"
+  },
+  "devDependencies": {
+    "mocha": "^10.2.0",
+    "node-red-node-test-helper": "^0.3.2"
+  }
 }
