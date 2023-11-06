@@ -25,8 +25,17 @@ let require_cache = {
 
 function scan_for_require_path(req_path) {
 
-    let runner = 0;
     let found;
+
+    if (process.env.NODE_RED_HOME) {
+        found = path.join(process.env.NODE_RED_HOME, "..", req_path);
+        console.log("@f", found);
+        if (fs.existsSync(found)) {
+            return found;
+        }
+    }
+
+    let runner = 0;
 
     while (runner < Object.keys(require_cache).length) {
 
