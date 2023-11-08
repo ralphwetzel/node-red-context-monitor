@@ -77,7 +77,7 @@ function scan_for_require_path(req_path) {
 let context_manager;
 
 // When running a test, NODE_RED_HOME is not defined.
-if (process.env.NODE_RED_HOME) {
+if (process.env.NODE_RED_HOME && !process.env.TESTING_CONTEXT_MONITOR) {
 
     let context_manager_path = scan_for_require_path("@node-red/runtime/lib/nodes/context");
     if (context_manager_path) {
