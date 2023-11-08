@@ -5,12 +5,47 @@
 -->
 
 <script type="text/javascript">
+
+    function validate_context_key(key) {
+        try {
+            var parts = RED.utils.normalisePropertyExpression(key);
+
+            // If there's a changable part (e.g. test[msg.payload])
+            // this will become an array type in parts.
+            // Those might be ok for other situtions, but not here!
+            for (i=0; i<parts.length; i++) {
+                let p = parts[i];
+                if (Array.isArray(p)) {
+                    return false;
+                }
+            }
+            return true;
+        } catch (err) {
+            return false;
+        }
+    }
+
     RED.nodes.registerType('context-monitor',{
         category: 'input',
         color: '#b0b0b0',
         defaults: {
             name: {value:""},
-            monitoring: {value:[]}
+            monitoring: { 
+                value: [],
+                validate: function(scopes, opt) {
+                    let msg;
+                    if (!scopes || scopes.length === 0) { return true }
+                    for (let i=0; i<scopes.length; i++) {
+                        let scope = scopes[i];
+                        if (!validate_context_key(scope.key)) {
+                            return RED._("node-red:change.errors.invalid-prop", {
+                                property: scope.key
+                            });
+                        }
+                    }
+                    return true;
+                }
+            }
         },
         inputs: 0,
         outputs: 2,
@@ -273,6 +308,11 @@
                             data.key = $(this).val();
                             node.dirty = true;
                         }
+                        $(this).toggleClass("input-error", !validate_context_key($(this).val()));
+                    });
+
+                    $(`#context-scope-key-${index}`).on( "input", function () {
+                        $(this).toggleClass("input-error", !validate_context_key($(this).val()));
                     });
 
                     // initialize the form
@@ -305,7 +345,7 @@
                         }
                     }
 
-                    $(`#context-scope-key-${index}`).val(data.key);
+                    $(`#context-scope-key-${index}`).val(data.key).toggleClass("input-error", !validate_context_key(data.key));
 
                     _initing = false;
                 },
@@ -381,7 +421,7 @@
                     //     break;
                     case "node":
                         delete data.group;
-                }
+                                        }
 
                 if (data.flow == node.z) {
                     // set a special marker that 'this flow' shall be referenced
