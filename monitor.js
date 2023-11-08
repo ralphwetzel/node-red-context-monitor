@@ -178,9 +178,15 @@ module.exports = function(RED) {
         node.on("close",function() {
             // remove this nodes ctx(s) from the trigger list
             node.monitoring.forEach( ctx => {
-                set_cache[ctx] = set_cache[ctx].filter( n => {
+                let sc = set_cache[ctx];
+                if (sc) {
+                    set_cache[ctx] = sc.filter( n => {
                     return n.id !== node.id;
                 })
+                    if (set_cache[ctx].length < 1) {
+                        delete set_cache[ctx];
+                    }
+                }
             })
         });
     }
