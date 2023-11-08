@@ -117,12 +117,31 @@ module.exports = function(RED) {
         RED.nodes.createNode(this,config);
         var node = this;
 
-        node.data = config.monitoring;
+        let scopes = config.monitoring ?? [];
+        node.data = scopes;
+
         node.monitoring = [];
 
-        config.monitoring.forEach( data => {
+        scopes.forEach( data => {
 
             if (!data.key) return;
+
+            // support for complex keys
+            // test["mm"].value becomes test.mm.value
+            let key = data.key;
+
+            try {
+                let key_parts = RED.util.normalisePropertyExpression(key);
+                for (i=0; i<key_parts.length; i++) {
+                    if (Array.isArray(key_parts[i])) {
+                        return;
+                    }
+                }
+                key = key_parts.join('.');
+            } catch {
+                return;
+            }
+
             if ("." === data.flow) {
                 data.flow = node.z;
             }
@@ -130,13 +149,13 @@ module.exports = function(RED) {
             let ctx = "global";
             switch (data.scope) {
                 case "global":
-                    ctx = `global:${data.key}`;
+                    ctx = `global:${key}`;
                     break;
                 case "flow":
-                    ctx = `${data.flow}:${data.key}`;
+                    ctx = `${data.flow}:${key}`;
                     break;
                 case "node":
-                    ctx = `${data.node}:${data.flow}:${data.key}`;
+                    ctx = `${data.node}:${data.flow}:${key}`;
                     break;
                 default:
                     return;
@@ -181,8 +200,8 @@ module.exports = function(RED) {
                 let sc = set_cache[ctx];
                 if (sc) {
                     set_cache[ctx] = sc.filter( n => {
-                    return n.id !== node.id;
-                })
+                        return n.id !== node.id;
+                    })
                     if (set_cache[ctx].length < 1) {
                         delete set_cache[ctx];
                     }
