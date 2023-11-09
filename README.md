@@ -74,7 +74,7 @@ Message sent by the node:
 
 You may define a setup that doesn't monitor the (whole) object, but only one of its properties:
 
-<img alt="flow" src="https://raw.githubusercontent.com/ralphwetzel/node-red-context-monitor/main/resources/object_prop.png"
+<img alt="flow" src="https://raw.githubusercontent.com/ralphwetzel/node-red-context-monitor/main/resources/object_msg.png"
     style="min-width: 474px; width: 474px; align: center; border: 1px solid lightgray;"/>
 
 Such a monitor will react _only_, when this property and - if its an object - its child properties are written to.
