@@ -9,8 +9,6 @@ A [Node-RED](https://www.nodered.org) node to monitor a [context](https://nodere
 
 This node allows to setup the reference to a context, then sends a message when this context is written to.
 
-> Disclaimer: You need to `set` a (new) value to the context to trigger this node, e.g. `flow.set('value', 10)` or write to the context using a `change` node. 
-
 It sends a dedicated message on a separate port in case it detects that the value of the context was changed.
 
 The message sent will carry the current value of the context as `msg.payload`, the context key as `msg.topic`.
@@ -26,7 +24,7 @@ It is possible to monitor an infinite number of contexts with each instance of t
 
 This node supports the three [context scope levels](https://nodered.org/docs/user-guide/context#context-scopes) `Global`, `Flow` & `Node`.
 
-### Monitoring Objects stored in Context
+#### Monitoring Objects stored in Context
 You may of course define a setup that monitors objects stored in context.
 
 If you create a reference to this object (stored in context) and write to its properties, this node issues its messages accordingly:
