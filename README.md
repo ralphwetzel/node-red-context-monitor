@@ -50,7 +50,9 @@ To monitor a `Node` scope context, set the scope to `Node`, then select flow & n
 ### Monitoring Objects stored in Context
 You may of course define a setup that monitors objects stored in context.
 
-If you create a reference to this object (stored in context) and write to its properties, this node issues its messages accordingly:
+If you create a reference to this object (stored in context) and write to its properties, this node issues its messages accordingly
+
+> Disclaimer: Monitoring changes to elements of an `Array` currently is not supported.
 
 #### Example:
 Monitoring context definition:
@@ -79,5 +81,3 @@ You may define a setup that doesn't monitor the (whole) object, but only one of 
     style="min-width: 474px; width: 474px; align: center; border: 1px solid lightgray;"/>
 
 Such a monitor will react _only_, when this property and - if it's an object - its child properties are written to.
-
-> Disclaimer: Monitoring changes to elements of an `Array` currently is not supported.
