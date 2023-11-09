@@ -72,6 +72,7 @@ Message sent by the node:
 <img alt="flow" src="https://raw.githubusercontent.com/ralphwetzel/node-red-context-monitor/main/resources/object_msg.png"
     style="min-width: 310px; width: 310px; align: center; border: 1px solid lightgray;"/>
 
+#### Object property monitoring
 You may define a setup that doesn't monitor the (whole) object, but only one of its properties:
 
 <img alt="flow" src="https://raw.githubusercontent.com/ralphwetzel/node-red-context-monitor/main/resources/object_prop.png"
