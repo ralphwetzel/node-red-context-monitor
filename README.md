@@ -47,7 +47,7 @@ To monitor a `Node` scope context, set the scope to `Node`, then select flow & n
 
 > Hint: This node doesn't create a context. It just tries to reference to those already existing. If you're referencing a non-existing context, no harm will happen.
 
-### Monitoring Objects stored in Context
+### Monitoring objects stored in context
 You may of course define a setup that monitors objects stored in context.
 
 If you create a reference to this object (stored in context) and write to its properties, this node issues its messages accordingly.
