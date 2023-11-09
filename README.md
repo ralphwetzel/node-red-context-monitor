@@ -52,6 +52,7 @@ You may of course define a setup that monitors objects stored in context.
 
 If you create a reference to this object (stored in context) and write to its properties, this node issues its messages accordingly:
 
+#### Example:
 Monitoring context definition:
 
 <img alt="flow" src="https://raw.githubusercontent.com/ralphwetzel/node-red-context-monitor/main/resources/object_monitor.png"
