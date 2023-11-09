@@ -64,7 +64,6 @@ Code in a `function` node:
 
 ``` javascript
     // suppose, test_flow = { prop: "value" }
-
     let obj = flow.get("test_flow");
     obj.prop = "new";
 ```
