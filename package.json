@@ -36,5 +36,14 @@
   "devDependencies": {
     "mocha": "^10.2.0",
     "node-red-node-test-helper": "^0.3.2"
-  }
+  },
+  "files": [
+    "/examples",
+    "/lib",
+    "/resources",
+    "LICENSE",
+    "monitor.*",
+    "package.json",
+    "README.md"
+  ]
 }
