@@ -875,7 +875,7 @@ describe('context-monitor Node', function () {
                   topic: "test_global",
                   payload: "value",
                   monitoring: {
-                    "_source": "fn1",
+                    "source": "fn1",
                     scope: "global",
                     key: "test_global"
                   }
@@ -925,7 +925,7 @@ describe('context-monitor Node', function () {
                   topic: "test_flow",
                   payload: "value",
                   monitoring: {
-                    "_source": "fn1",
+                    "source": "fn1",
                     scope: "flow",
                     flow: "f1",
                     key: "test_flow"
@@ -978,7 +978,7 @@ describe('context-monitor Node', function () {
                   topic: "test_node",
                   payload: "value",
                   monitoring: {
-                    "_source": "fn1",
+                    "source": "fn1",
                     scope: "node",
                     flow: "f1",
                     node: "fn1",
@@ -1037,7 +1037,7 @@ describe('context-monitor Node', function () {
                   topic: "test_global",
                   payload: "value",
                   monitoring: {
-                    "_source": "c1",
+                    "source": "c1",
                     scope: "global",
                     key: "test_global"
                   }
@@ -1095,7 +1095,7 @@ describe('context-monitor Node', function () {
                   topic: "test_flow",
                   payload: "value",
                   monitoring: {
-                    "_source": "c1",
+                    "source": "c1",
                     scope: "flow",
                     flow: "f1",
                     key: "test_flow"
@@ -1145,7 +1145,7 @@ describe('context-monitor Node', function () {
                   topic: "test_global",
                   payload: "value",
                   monitoring: {
-                    "_source": "fn1",
+                    "source": "fn1",
                     scope: "global",
                     key: "test_global",
                     previous: undefined
@@ -1196,7 +1196,7 @@ describe('context-monitor Node', function () {
                   topic: "test_flow",
                   payload: "value",
                   monitoring: {
-                    "_source": "fn1",
+                    "source": "fn1",
                     scope: "flow",
                     flow: "f1",
                     key: "test_flow",
@@ -1250,7 +1250,7 @@ describe('context-monitor Node', function () {
                   topic: "test_node",
                   payload: "value",
                   monitoring: {
-                    "_source": "fn1",
+                    "source": "fn1",
                     scope: "node",
                     flow: "f1",
                     node: "fn1",
@@ -1310,7 +1310,7 @@ describe('context-monitor Node', function () {
                   topic: "test_global",
                   payload: "value",
                   monitoring: {
-                    "_source": "c1",
+                    "source": "c1",
                     scope: "global",
                     key: "test_global",
                     previous: undefined
@@ -1369,7 +1369,7 @@ describe('context-monitor Node', function () {
                   topic: "test_flow",
                   payload: "value",
                   monitoring: {
-                    "_source": "c1",
+                    "source": "c1",
                     scope: "flow",
                     flow: "f1",
                     key: "test_flow",
@@ -1705,7 +1705,7 @@ describe('context-monitor Node', function () {
               topic: "test_object",
               payload: { "prop": "value" },
               monitoring: {
-                "_source": "fn1",
+                "source": "fn1",
                 scope: "flow",
                 flow: "f1",
                 key: "test_object"
@@ -1714,7 +1714,7 @@ describe('context-monitor Node', function () {
                 topic: "test_object.prop",
                 payload: "new",
                 monitoring: {
-                  "_source": "fn1",
+                  "source": "fn1",
                   scope: "flow",
                   flow: "f1",
                   key: "test_object"
@@ -1775,7 +1775,7 @@ describe('context-monitor Node', function () {
               // topic: "test_object",
               // payload: { "prop": "value" },
               // monitoring: {
-              //   "_source": "fn1",
+              //   "source": "fn1",
               //   scope: "flow",
               //   flow: "f1",
               //   key: "test_object"
@@ -1785,7 +1785,7 @@ describe('context-monitor Node', function () {
                 topic: "test_object.prop",
                 payload: "new",
                 monitoring: {
-                  "_source": "fn1",
+                  "source": "fn1",
                   scope: "flow",
                   flow: "f1",
                   key: "test_object['prop']"
@@ -1855,7 +1855,7 @@ describe('context-monitor Node', function () {
                 topic: "test_object.prop",
                 payload: "new",
                 monitoring: {
-                  "_source": "c1",
+                  "source": "c1",
                   scope: "flow",
                   flow: "f1",
                   key: "test_object['prop']"
