@@ -1,6 +1,6 @@
 {
   "name": "@ralphwetzel/node-red-context-monitor",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "A Node-RED node to monitor a context.",
   "main": "monitor.js",
   "scripts": {
@@ -27,15 +27,15 @@
   },
   "homepage": "https://github.com/ralphwetzel/node-red-context-monitor#readme",
   "dependencies": {
-    "fs-extra": "^11.1.1",
-    "node-red": "^3.1.0"
+    "fs-extra": "^11.1.1"
   },
   "engines": {
     "node": ">=14.0.0"
   },
   "devDependencies": {
     "mocha": "^10.2.0",
-    "node-red-node-test-helper": "^0.3.2"
+    "node-red-node-test-helper": "^0.3.2",
+    "node-red": "^3.1.0"
   },
   "files": [
     "/examples",
