@@ -45,27 +45,30 @@
                     }
                     return true;
                 }
+            },
+            tostatus: {
+                value: false
             }
         },
         inputs: 0,
         outputs: 2,
         outputLabels: ["context set", "context changed"],
-        icon: "font-awesome/fa-dot-circle-o",
+        icon: "font-awesome/fa-copyright",
         label: function() {
             if (this.name) {
                 return this.name;
             }
             let l = this.monitoring.length;
             if (l > 1) {
-                return `${l} context keys`;
+                return `context: ${l}`;
             }
             let key = this.monitoring[0]?.key;
             if (key && key.length > 0) {
                 return key;
             }
-            return "ctx monitor";
+            return "context: 0";
         },
-        paletteLabel: "ctx monitor",
+        paletteLabel: "context",
         oneditprepare: function() {
 
             let node = this;
@@ -127,7 +130,7 @@
                     $(`<input type="text" id="context-scope-nodes-${index}" placeholder="Nodes">`).appendTo(line_node);
                     line_node.appendTo(fragment);
 
-                    let line_key = $('<div class="form-row" style="margin-bottom: 0px">');
+                    let line_key = $('<div class="form-row" style="margin-bottom: 6px">');
                     // $(`<label for="context-scope-key-${index}"" style="margin-left:10px; width: 90px"><i class="fa fa-tag"></i> Key</label>`).appendTo(line_key);
                     $(`<label for="context-scope-key-${index}" style="margin-left:10px; width: 90px">Key: </label>`).appendTo(line_key);
                     $(`<input type="text" id="context-scope-key-${index}" placeholder="Context Variable Key">`).appendTo(line_key);
@@ -390,6 +393,9 @@
             let top = el.position().top;
             el.height(size.height - top);
 
+            let bottom = top + el.height();
+            let right = el.position().left + el.width();
+
             let ti = $('[id*=context-scope-flows]:first');
             let width;
             if (ti.length > 0) {
@@ -398,6 +404,13 @@
             if (width) {
                 $('[id*=context-scope-key]').outerWidth(width);
             }
+
+            el = $('#tostatus-row');
+            let list = el.prev();
+            let add = list.find('.red-ui-editableList-addButton');
+            el.css("top" , add.position().top);
+            el.css("left", right - el.width());
+
         },
         oneditsave: function () {
             let node = this;
@@ -445,10 +458,16 @@
         <input type="text" id="node-input-monitoring" placeholder="Context">
     </div> -->
     <div class="form-row" style="margin-bottom:0;">
-        <label style="min-width:200px;"><i class="fa fa-dot-circle-o"></i> <span>Monitoring context definition</span></label>
+        <label style="min-width:200px;"><i class="fa fa-copyright"></i> <span>Monitoring context definition</span></label>
     </div>
     <div class="form-row node-input-context-def-row">
         <ol id="node-input-context-container"></ol>
+    </div>
+    <div id ="tostatus-row" style="position: absolute">
+        <label for="node-input-tostatus" style="margin-top: 4px">
+            <input type="checkbox" id="node-input-tostatus" style="display:inline-block; width:22px; vertical-align:top;" autocomplete="off">
+            <span>Show incoming data in node status</span>
+        </label>
     </div>
 </script>
 

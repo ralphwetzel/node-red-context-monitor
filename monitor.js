@@ -175,6 +175,9 @@ module.exports = function(RED) {
 
         node.on("input", function(msg, send, done) {
             
+            let node = this;
+            let timeout;
+
             // unfold & check if changed
             let prev = msg.previous;
             let changed = msg.changed;
@@ -192,6 +195,24 @@ module.exports = function(RED) {
                 send([msg, null]);
             }
 
+            if (config.tostatus) {
+
+                if (timeout) {
+                    clearTimeout(timeout);
+                }
+    
+                node.status({
+                    fill: "blue",
+                    shape: changed ? "dot" : "ring", 
+                    text: msg.topic + ": " + JSON.stringify(msg.payload)
+                });
+    
+                timeout = setTimeout(function() {
+                    node.status({});
+                    timeout = undefined;
+                }, 2500);    
+            }
+
             done();
         });
         node.on("close",function() {
@@ -207,6 +228,11 @@ module.exports = function(RED) {
                     }
                 }
             })
+
+            if (timeout) {
+                clearTimeout(timeout);
+                timeout = undefined;
+            }
         });
     }
 
