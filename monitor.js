@@ -25,7 +25,7 @@ function scan_for_require_path(req_path) {
 
     if (process.env.NODE_RED_HOME) {
         found = path.join(process.env.NODE_RED_HOME, "..", req_path);
-        console.log("@f", found);
+        // console.log("@f", found);
         if (fs.existsSync(found)) {
             return found;
         }
@@ -64,7 +64,7 @@ function scan_for_require_path(req_path) {
         }
     }
 
-    console.log(found);
+    // console.log(found);
     return found;
 }
 
