@@ -271,7 +271,9 @@
                                 label: "No nodes in this flow"
                             })
                         }
-                        $(`#context-scope-nodes-${index}`).typedInput('types', [{options: node_opts}]);
+                        $(`#context-scope-nodes-${index}`).typedInput('types', [{
+                            value: "node",
+                            options: node_opts}]);
                         $(`#context-scope-nodes-${index}`).parent().find(".red-ui-typedInput-option-label").css("color", nol < 1 ? "darkgrey" : "var(--red-ui-form-text-color)");
                         if ($(`#context-scope-${index}`).typedInput("value") == "node") {
                             $(`#context-scope-key-${index}`).prop("disabled", nol < 1);
@@ -296,7 +298,8 @@
                     // });
 
                     $(`#context-scope-nodes-${index}`).typedInput({type:"node", types:[{
-                        value: "node"
+                        value: "node",
+                        options: []
                     }]}).on("change", function (event, type, value) {
                         if (!_initing) {
                             data.node = value;
@@ -402,6 +405,7 @@
                 width = ti.next().outerWidth();
             }
             if (width) {
+                $('[id*=context-scope-nodes]').outerWidth(width);
                 $('[id*=context-scope-key]').outerWidth(width);
             }
 
