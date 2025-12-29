@@ -32,9 +32,6 @@ let changeNode = require("@node-red/nodes/core/function/15-change.js");
 let functionNode = require("@node-red/nodes/core/function/10-function.js");
 let joinNode = require("@node-red/nodes/core/sequence/17-split.js");
 
-
-
-
 describe('context-monitor Node', function () {
 
   beforeEach(function (done) {
@@ -527,6 +524,7 @@ describe('context-monitor Node', function () {
       });
     });
   });
+  
   describe('Context patch', function () {
 
     it('should return object of type Proxy for Context.get', function (done) {
@@ -839,1048 +837,1047 @@ describe('context-monitor Node', function () {
     });
   });
 
-    describe('Monitoring', function () {
+  describe('Monitoring', function () {
 
-      it('should create (single monitor) set message when global scope context is written to by function node (= sync)', function (done) {
-        var flow = [{
-          id: "f1",
-          type: "tab"
-        }, {
-          "id": "fn1",
-          "type": "function",
-          "z": "f1",
-          "func": "global.set(\"test_global\", \"value\");\nreturn msg;",
-          "outputs": 0
-        }, {
-          id: "cm1",
-          type: "context-monitor",
-          monitoring: [
-            {
-              "scope": "global",
-              "key": "test_global"
+    it('should create (single monitor) set message when global scope context is written to by function node (= sync)', function (done) {
+      var flow = [{
+        id: "f1",
+        type: "tab"
+      }, {
+        "id": "fn1",
+        "type": "function",
+        "z": "f1",
+        "func": "global.set(\"test_global\", \"value\");\nreturn msg;",
+        "outputs": 0
+      }, {
+        id: "cm1",
+        type: "context-monitor",
+        monitoring: [
+          {
+            "scope": "global",
+            "key": "test_global"
+          }
+        ],
+        wires: [["h1"], []]
+      }, {
+        id: "h1", type: "helper", wires: []
+      }];
+      helper.load([monitorNode, functionNode], flow, function () {
+        initContext(function () {
+          let fn1 = helper.getNode("fn1");
+          let h1 = helper.getNode("h1");
+          h1.on("input", function (msg) {
+            try {
+              delete msg["_msgid"];
+              msg.should.eql({
+                topic: "test_global",
+                payload: "value",
+                monitoring: {
+                  "source": "fn1",
+                  scope: "global",
+                  key: "test_global"
+                }
+              })
+              done();
+            } catch (err) {
+              done(err);
             }
-          ],
-          wires: [["h1"], []]
-        }, {
-          id: "h1", type: "helper", wires: []
-        }];
-        helper.load([monitorNode, functionNode], flow, function () {
-          initContext(function () {
-            let fn1 = helper.getNode("fn1");
-            let h1 = helper.getNode("h1");
-            h1.on("input", function (msg) {
-              try {
-                delete msg["_msgid"];
-                msg.should.eql({
-                  topic: "test_global",
-                  payload: "value",
-                  monitoring: {
-                    "source": "fn1",
-                    scope: "global",
-                    key: "test_global"
-                  }
-                })
-                done();
-              } catch (err) {
-                done(err);
-              }
-            });
-            fn1.receive({ payload: "" });
           });
+          fn1.receive({ payload: "" });
         });
       });
+    });
 
-      it('should create (single monitor) set message when flow scope context is written to by function node (= sync)', function (done) {
-        var flow = [{
-          id: "f1",
-          type: "tab"
-        }, {
-          "id": "fn1",
-          "type": "function",
-          "z": "f1",
-          "func": "flow.set(\"test_flow\", \"value\");\nreturn msg;",
-          "outputs": 0
-        }, {
-          id: "cm1",
-          type: "context-monitor",
-          monitoring: [
-            {
-              "scope": "flow",
-              "flow": "f1",
-              "key": "test_flow"
+    it('should create (single monitor) set message when flow scope context is written to by function node (= sync)', function (done) {
+      var flow = [{
+        id: "f1",
+        type: "tab"
+      }, {
+        "id": "fn1",
+        "type": "function",
+        "z": "f1",
+        "func": "flow.set(\"test_flow\", \"value\");\nreturn msg;",
+        "outputs": 0
+      }, {
+        id: "cm1",
+        type: "context-monitor",
+        monitoring: [
+          {
+            "scope": "flow",
+            "flow": "f1",
+            "key": "test_flow"
+          }
+        ],
+        wires: [["h1"], []]
+      }, {
+        id: "h1", type: "helper", wires: []
+      }];
+      helper.load([monitorNode, functionNode], flow, function () {
+        initContext(function () {
+          let fn1 = helper.getNode("fn1");
+          let h1 = helper.getNode("h1");
+          h1.on("input", function (msg) {
+            try {
+              delete msg["_msgid"];
+              msg.should.eql({
+                topic: "test_flow",
+                payload: "value",
+                monitoring: {
+                  "source": "fn1",
+                  scope: "flow",
+                  flow: "f1",
+                  key: "test_flow"
+                }
+              })
+              done();
+            } catch (err) {
+              done(err);
             }
-          ],
-          wires: [["h1"], []]
-        }, {
-          id: "h1", type: "helper", wires: []
-        }];
-        helper.load([monitorNode, functionNode], flow, function () {
-          initContext(function () {
-            let fn1 = helper.getNode("fn1");
-            let h1 = helper.getNode("h1");
-            h1.on("input", function (msg) {
-              try {
-                delete msg["_msgid"];
-                msg.should.eql({
-                  topic: "test_flow",
-                  payload: "value",
-                  monitoring: {
-                    "source": "fn1",
-                    scope: "flow",
-                    flow: "f1",
-                    key: "test_flow"
-                  }
-                })
-                done();
-              } catch (err) {
-                done(err);
-              }
-            });
-            fn1.receive({ payload: "" });
           });
+          fn1.receive({ payload: "" });
         });
       });
+    });
 
-      it('should create (single monitor) set message when node scope context is written to by function node (= sync)', function (done) {
-        var flow = [{
-          id: "f1",
-          type: "tab"
-        }, {
-          "id": "fn1",
-          "type": "function",
-          "z": "f1",
-          "func": "context.set(\"test_node\", \"value\");\nreturn msg;",
-          "outputs": 0
-        }, {
-          id: "cm1",
-          z: "f1",
-          type: "context-monitor",
-          monitoring: [
-            {
-              "scope": "node",
-              "flow": ".",
-              "node": "fn1",
-              "key": "test_node"
+    it('should create (single monitor) set message when node scope context is written to by function node (= sync)', function (done) {
+      var flow = [{
+        id: "f1",
+        type: "tab"
+      }, {
+        "id": "fn1",
+        "type": "function",
+        "z": "f1",
+        "func": "context.set(\"test_node\", \"value\");\nreturn msg;",
+        "outputs": 0
+      }, {
+        id: "cm1",
+        z: "f1",
+        type: "context-monitor",
+        monitoring: [
+          {
+            "scope": "node",
+            "flow": ".",
+            "node": "fn1",
+            "key": "test_node"
+          }
+        ],
+        wires: [["h1"], []]
+      }, {
+        id: "h1", type: "helper", wires: []
+      }];
+      helper.load([monitorNode, functionNode], flow, function () {
+        initContext(function () {
+          let fn1 = helper.getNode("fn1");
+          let h1 = helper.getNode("h1");
+          h1.on("input", function (msg) {
+            try {
+              delete msg["_msgid"];
+              msg.should.eql({
+                topic: "test_node",
+                payload: "value",
+                monitoring: {
+                  "source": "fn1",
+                  scope: "node",
+                  flow: "f1",
+                  node: "fn1",
+                  key: "test_node"
+                }
+              })
+              done();
+            } catch (err) {
+              done(err);
             }
-          ],
-          wires: [["h1"], []]
-        }, {
-          id: "h1", type: "helper", wires: []
-        }];
-        helper.load([monitorNode, functionNode], flow, function () {
-          initContext(function () {
-            let fn1 = helper.getNode("fn1");
-            let h1 = helper.getNode("h1");
-            h1.on("input", function (msg) {
-              try {
-                delete msg["_msgid"];
-                msg.should.eql({
-                  topic: "test_node",
-                  payload: "value",
-                  monitoring: {
-                    "source": "fn1",
-                    scope: "node",
-                    flow: "f1",
-                    node: "fn1",
-                    key: "test_node"
-                  }
-                })
-                done();
-              } catch (err) {
-                done(err);
-              }
-            });
-            fn1.receive({ payload: "" });
           });
+          fn1.receive({ payload: "" });
         });
       });
+    });
 
-      it('should create (single monitor) set message when global scope context is written to by change node (= async)', function (done) {
-        var flow = [{
-          id: "f1",
-          type: "tab"
-        }, {
-          id: "c1",
-          z: "f1",
-          type: "change",
-          "name": "",
-          "rules": [
-            {
-              "t": "set",
-              "p": "test_global",
-              "pt": "global",
-              "to": "value",
-              "tot": "str"
+    it('should create (single monitor) set message when global scope context is written to by change node (= async)', function (done) {
+      var flow = [{
+        id: "f1",
+        type: "tab"
+      }, {
+        id: "c1",
+        z: "f1",
+        type: "change",
+        "name": "",
+        "rules": [
+          {
+            "t": "set",
+            "p": "test_global",
+            "pt": "global",
+            "to": "value",
+            "tot": "str"
+          }
+        ]
+      }, {
+        id: "cm1",
+        type: "context-monitor",
+        monitoring: [
+          {
+            "scope": "global",
+            "key": "test_global"
+          }
+        ],
+        wires: [["h1"], []]
+      }, {
+        id: "h1", type: "helper", wires: []
+      }];
+      helper.load([monitorNode, changeNode], flow, function () {
+        initContext(function () {
+          let c1 = helper.getNode("c1");
+          let h1 = helper.getNode("h1");
+          h1.on("input", function (msg) {
+            try {
+              delete msg["_msgid"];
+              msg.should.eql({
+                topic: "test_global",
+                payload: "value",
+                monitoring: {
+                  "source": "c1",
+                  scope: "global",
+                  key: "test_global"
+                }
+              })
+              done();
+            } catch (err) {
+              done(err);
             }
-          ]
-        }, {
-          id: "cm1",
-          type: "context-monitor",
-          monitoring: [
-            {
-              "scope": "global",
-              "key": "test_global"
-            }
-          ],
-          wires: [["h1"], []]
-        }, {
-          id: "h1", type: "helper", wires: []
-        }];
-        helper.load([monitorNode, changeNode], flow, function () {
-          initContext(function () {
-            let c1 = helper.getNode("c1");
-            let h1 = helper.getNode("h1");
-            h1.on("input", function (msg) {
-              try {
-                delete msg["_msgid"];
-                msg.should.eql({
-                  topic: "test_global",
-                  payload: "value",
-                  monitoring: {
-                    "source": "c1",
-                    scope: "global",
-                    key: "test_global"
-                  }
-                })
-                done();
-              } catch (err) {
-                done(err);
-              }
-            });
-            c1.receive({ payload: "" });
           });
+          c1.receive({ payload: "" });
         });
       });
+    });
 
-      it('should create (single monitor) set message when flow scope context is written to by change node (= async)', function (done) {
-        var flow = [{
-          id: "f1",
-          type: "tab"
-        }, {
-          id: "c1",
-          z: "f1",
-          type: "change",
-          "name": "",
-          "rules": [
-            {
-              "t": "set",
-              "p": "test_flow",
-              "pt": "flow",
-              "to": "value",
-              "tot": "str"
+    it('should create (single monitor) set message when flow scope context is written to by change node (= async)', function (done) {
+      var flow = [{
+        id: "f1",
+        type: "tab"
+      }, {
+        id: "c1",
+        z: "f1",
+        type: "change",
+        "name": "",
+        "rules": [
+          {
+            "t": "set",
+            "p": "test_flow",
+            "pt": "flow",
+            "to": "value",
+            "tot": "str"
+          }
+        ]
+      }, {
+        id: "cm1",
+        type: "context-monitor",
+        monitoring: [
+          {
+            "scope": "flow",
+            flow: "f1",
+            "key": "test_flow"
+          }
+        ],
+        wires: [["h1"], []]
+      }, {
+        id: "h1", type: "helper", wires: []
+      }];
+      helper.load([monitorNode, changeNode], flow, function () {
+        initContext(function () {
+          let c1 = helper.getNode("c1");
+          let h1 = helper.getNode("h1");
+          h1.on("input", function (msg) {
+            try {
+              delete msg["_msgid"];
+              msg.should.eql({
+                topic: "test_flow",
+                payload: "value",
+                monitoring: {
+                  "source": "c1",
+                  scope: "flow",
+                  flow: "f1",
+                  key: "test_flow"
+                }
+              })
+              done();
+            } catch (err) {
+              done(err);
             }
-          ]
-        }, {
-          id: "cm1",
-          type: "context-monitor",
-          monitoring: [
-            {
-              "scope": "flow",
+          });
+          c1.receive({ payload: "" });
+        });
+      });
+    });
+
+    it('should create (single monitor) change message when global scope context is written to by function node (= sync)', function (done) {
+      var flow = [{
+        id: "f1",
+        type: "tab"
+      }, {
+        "id": "fn1",
+        "type": "function",
+        "z": "f1",
+        "func": "global.set(\"test_global\", \"value\");\nreturn msg;",
+        "outputs": 0
+      }, {
+        id: "cm1",
+        type: "context-monitor",
+        monitoring: [
+          {
+            "scope": "global",
+            "key": "test_global"
+          }
+        ],
+        wires: [[], ["h1"]]
+      }, {
+        id: "h1", type: "helper", wires: []
+      }];
+      helper.load([monitorNode, functionNode], flow, function () {
+        initContext(function () {
+          let fn1 = helper.getNode("fn1");
+          let h1 = helper.getNode("h1");
+          h1.on("input", function (msg) {
+            try {
+              delete msg["_msgid"];
+              msg.should.eql({
+                topic: "test_global",
+                payload: "value",
+                monitoring: {
+                  "source": "fn1",
+                  scope: "global",
+                  key: "test_global",
+                  previous: undefined
+                }
+              })
+              done();
+            } catch (err) {
+              done(err);
+            }
+          });
+          fn1.receive({ payload: "" });
+        });
+      });
+    });
+
+    it('should create (single monitor) change message when flow scope context is written to by function node (= sync)', function (done) {
+      var flow = [{
+        id: "f1",
+        type: "tab"
+      }, {
+        "id": "fn1",
+        "type": "function",
+        "z": "f1",
+        "func": "flow.set(\"test_flow\", \"value\");\nreturn msg;",
+        "outputs": 0
+      }, {
+        id: "cm1",
+        type: "context-monitor",
+        monitoring: [
+          {
+            "scope": "flow",
+            "flow": "f1",
+            "key": "test_flow"
+          }
+        ],
+        wires: [[], ["h1"]]
+      }, {
+        id: "h1", type: "helper", wires: []
+      }];
+      helper.load([monitorNode, functionNode], flow, function () {
+        initContext(function () {
+          let fn1 = helper.getNode("fn1");
+          let h1 = helper.getNode("h1");
+          h1.on("input", function (msg) {
+            try {
+              delete msg["_msgid"];
+              msg.should.eql({
+                topic: "test_flow",
+                payload: "value",
+                monitoring: {
+                  "source": "fn1",
+                  scope: "flow",
+                  flow: "f1",
+                  key: "test_flow",
+                  previous: undefined
+                }
+              })
+              done();
+            } catch (err) {
+              done(err);
+            }
+          });
+          fn1.receive({ payload: "" });
+        });
+      });
+    });
+
+    it('should create (single monitor) change message when node scope context is written to by function node (= sync)', function (done) {
+      var flow = [{
+        id: "f1",
+        type: "tab"
+      }, {
+        "id": "fn1",
+        "type": "function",
+        "z": "f1",
+        "func": "context.set(\"test_node\", \"value\");\nreturn msg;",
+        "outputs": 0
+      }, {
+        id: "cm1",
+        z: "f1",
+        type: "context-monitor",
+        monitoring: [
+          {
+            "scope": "node",
+            "flow": ".",
+            "node": "fn1",
+            "key": "test_node"
+          }
+        ],
+        wires: [[], ["h1"]]
+      }, {
+        id: "h1", type: "helper", wires: []
+      }];
+      helper.load([monitorNode, functionNode], flow, function () {
+        initContext(function () {
+          let fn1 = helper.getNode("fn1");
+          let h1 = helper.getNode("h1");
+          h1.on("input", function (msg) {
+            try {
+              delete msg["_msgid"];
+              msg.should.eql({
+                topic: "test_node",
+                payload: "value",
+                monitoring: {
+                  "source": "fn1",
+                  scope: "node",
+                  flow: "f1",
+                  node: "fn1",
+                  key: "test_node",
+                  previous: undefined
+                }
+              })
+              done();
+            } catch (err) {
+              done(err);
+            }
+          });
+          fn1.receive({ payload: "" });
+        });
+      });
+    });
+
+    it('should create (single monitor) change message when global scope context is written to by change node (= async)', function (done) {
+      var flow = [{
+        id: "f1",
+        type: "tab"
+      }, {
+        id: "c1",
+        z: "f1",
+        type: "change",
+        "name": "",
+        "rules": [
+          {
+            "t": "set",
+            "p": "test_global",
+            "pt": "global",
+            "to": "value",
+            "tot": "str"
+          }
+        ]
+      }, {
+        id: "cm1",
+        type: "context-monitor",
+        monitoring: [
+          {
+            "scope": "global",
+            "key": "test_global"
+          }
+        ],
+        wires: [[], ["h1"]]
+      }, {
+        id: "h1", type: "helper", wires: []
+      }];
+      helper.load([monitorNode, changeNode], flow, function () {
+        initContext(function () {
+          let c1 = helper.getNode("c1");
+          let h1 = helper.getNode("h1");
+          h1.on("input", function (msg) {
+            try {
+              delete msg["_msgid"];
+              msg.should.eql({
+                topic: "test_global",
+                payload: "value",
+                monitoring: {
+                  "source": "c1",
+                  scope: "global",
+                  key: "test_global",
+                  previous: undefined
+                }
+              })
+              done();
+            } catch (err) {
+              done(err);
+            }
+          });
+          c1.receive({ payload: "" });
+        });
+      });
+    });
+
+    it('should create (single monitor) change message when flow scope context is written to by change node (= async)', function (done) {
+      var flow = [{
+        id: "f1",
+        type: "tab"
+      }, {
+        id: "c1",
+        z: "f1",
+        type: "change",
+        "name": "",
+        "rules": [
+          {
+            "t": "set",
+            "p": "test_flow",
+            "pt": "flow",
+            "to": "value",
+            "tot": "str"
+          }
+        ]
+      }, {
+        id: "cm1",
+        type: "context-monitor",
+        monitoring: [
+          {
+            "scope": "flow",
+            flow: "f1",
+            "key": "test_flow"
+          }
+        ],
+        wires: [[], ["h1"]]
+      }, {
+        id: "h1", type: "helper", wires: []
+      }];
+      helper.load([monitorNode, changeNode], flow, function () {
+        initContext(function () {
+          let c1 = helper.getNode("c1");
+          let h1 = helper.getNode("h1");
+          h1.on("input", function (msg) {
+            try {
+              delete msg["_msgid"];
+              msg.should.eql({
+                topic: "test_flow",
+                payload: "value",
+                monitoring: {
+                  "source": "c1",
+                  scope: "flow",
+                  flow: "f1",
+                  key: "test_flow",
+                  previous: undefined
+                }
+              })
+              done();
+            } catch (err) {
+              done(err);
+            }
+          });
+          c1.receive({ payload: "" });
+        });
+      });
+    });
+
+    it('should create (two monitors) two set messages when node scope context is written to by function node (= sync)', function (done) {
+      var flow = [{
+        id: "f1",
+        type: "tab"
+      }, {
+        "id": "fn1",
+        "type": "function",
+        "z": "f1",
+        "func": "context.set(\"test_node\", \"value\");\nreturn msg;",
+        "outputs": 0
+      }, {
+        id: "cm1",
+        z: "f1",
+        type: "context-monitor",
+        monitoring: [
+          {
+            "scope": "node",
+            "flow": ".",
+            "node": "fn1",
+            "key": "test_node"
+          }
+        ],
+        wires: [["j1"], []]
+      }, {
+        id: "cm2",
+        z: "f1",
+        type: "context-monitor",
+        monitoring: [
+          {
+            "scope": "node",
+            "flow": ".",
+            "node": "fn1",
+            "key": "test_node"
+          }
+        ],
+        wires: [["j1"], []]
+      }, {
+        "id": "j1",
+        "type": "join",
+        "z": "f1",
+        "mode": "custom",
+        "build": "array",
+        "property": "",
+        "propertyType": "full",
+        "key": "topic",
+        "count": "2",
+        wires: [["h1"]]
+    }, {
+        id: "h1", type: "helper", wires: []
+      }];
+      helper.load([monitorNode, functionNode, joinNode], flow, function () {
+        initContext(function () {
+          let fn1 = helper.getNode("fn1");
+          let h1 = helper.getNode("h1");
+          h1.on("input", function (msg) {
+            try {
+              msg.payload.length.should.eql(2);
+              msg.topic.should.eql("test_node");
+              done();
+            } catch (err) {
+              done(err);
+            }
+          });
+          fn1.receive({ payload: "" });
+        });
+      });
+    });
+
+    it('should create (two monitors) two set messages when flow scope context is written to by change node (= async)', function (done) {
+      var flow = [{
+        id: "f1",
+        type: "tab"
+      }, {
+        id: "c1",
+        z: "f1",
+        type: "change",
+        "name": "",
+        "rules": [
+          {
+            "t": "set",
+            "p": "test_flow",
+            "pt": "flow",
+            "to": "value",
+            "tot": "str"
+          }
+        ]
+      }, {
+        id: "cm1",
+        z: "f1",
+        type: "context-monitor",
+        monitoring: [
+          {
+            "scope": "flow",
+            "flow": ".",
+            "key": "test_flow"
+          }
+        ],
+        wires: [["j1"], []]
+      }, {
+        id: "cm2",
+        z: "f1",
+        type: "context-monitor",
+        monitoring: [
+          {
+            "scope": "flow",
+            "flow": ".",
+            "key": "test_flow"
+          }
+        ],
+        wires: [["j1"], []]
+      }, {
+        "id": "j1",
+        "type": "join",
+        "z": "f1",
+        "mode": "custom",
+        "build": "array",
+        "property": "",
+        "propertyType": "full",
+        "key": "topic",
+        "count": "2",
+        wires: [["h1"]]
+    }, {
+        id: "h1", type: "helper", wires: []
+      }];
+      helper.load([monitorNode, changeNode, joinNode], flow, function () {
+        initContext(function () {
+          let c1 = helper.getNode("c1");
+          let h1 = helper.getNode("h1");
+          h1.on("input", function (msg) {
+            try {
+              msg.payload.length.should.eql(2);
+              msg.topic.should.eql("test_flow");
+              done();
+            } catch (err) {
+              done(err);
+            }
+          });
+          c1.receive({ payload: "" });
+        });
+      });
+    });
+  
+    it('should create (two monitors) two change messages when node scope context is written to by function node (= sync)', function (done) {
+      var flow = [{
+        id: "f1",
+        type: "tab"
+      }, {
+        "id": "fn1",
+        "type": "function",
+        "z": "f1",
+        "func": "context.set(\"test_node\", \"value\");\nreturn msg;",
+        "outputs": 0
+      }, {
+        id: "cm1",
+        z: "f1",
+        type: "context-monitor",
+        monitoring: [
+          {
+            "scope": "node",
+            "flow": ".",
+            "node": "fn1",
+            "key": "test_node"
+          }
+        ],
+        wires: [[], ["j1"]]
+      }, {
+        id: "cm2",
+        z: "f1",
+        type: "context-monitor",
+        monitoring: [
+          {
+            "scope": "node",
+            "flow": ".",
+            "node": "fn1",
+            "key": "test_node"
+          }
+        ],
+        wires: [[], ["j1"]]
+      }, {
+        "id": "j1",
+        "type": "join",
+        "z": "f1",
+        "mode": "custom",
+        "build": "array",
+        "property": "",
+        "propertyType": "full",
+        "key": "topic",
+        "count": "2",
+        wires: [["h1"]]
+    }, {
+        id: "h1", type: "helper", wires: []
+      }];
+      helper.load([monitorNode, functionNode, joinNode], flow, function () {
+        initContext(function () {
+          let fn1 = helper.getNode("fn1");
+          let h1 = helper.getNode("h1");
+          h1.on("input", function (msg) {
+            try {
+              msg.payload.length.should.eql(2);
+              msg.topic.should.eql("test_node");
+              done();
+            } catch (err) {
+              done(err);
+            }
+          });
+          fn1.receive({ payload: "" });
+        });
+      });
+    });
+
+    it('should create (two monitors) two change messages when flow scope context is written to by change node (= async)', function (done) {
+      var flow = [{
+        id: "f1",
+        type: "tab"
+      }, {
+        id: "c1",
+        z: "f1",
+        type: "change",
+        "name": "",
+        "rules": [
+          {
+            "t": "set",
+            "p": "test_flow",
+            "pt": "flow",
+            "to": "value",
+            "tot": "str"
+          }
+        ]
+      }, {
+        id: "cm1",
+        z: "f1",
+        type: "context-monitor",
+        monitoring: [
+          {
+            "scope": "flow",
+            "flow": ".",
+            "key": "test_flow"
+          }
+        ],
+        wires: [[], ["j1"]]
+      }, {
+        id: "cm2",
+        z: "f1",
+        type: "context-monitor",
+        monitoring: [
+          {
+            "scope": "flow",
+            "flow": ".",
+            "key": "test_flow"
+          }
+        ],
+        wires: [[], ["j1"]]
+      }, {
+        "id": "j1",
+        "type": "join",
+        "z": "f1",
+        "mode": "custom",
+        "build": "array",
+        "property": "",
+        "propertyType": "full",
+        "key": "topic",
+        "count": "2",
+        wires: [["h1"]]
+    }, {
+        id: "h1", type: "helper", wires: []
+      }];
+      helper.load([monitorNode, changeNode, joinNode], flow, function () {
+        initContext(function () {
+          let c1 = helper.getNode("c1");
+          let h1 = helper.getNode("h1");
+          h1.on("input", function (msg) {
+            try {
+              msg.payload.length.should.eql(2);
+              msg.topic.should.eql("test_flow");
+              done();
+            } catch (err) {
+              done(err);
+            }
+          });
+          c1.receive({ payload: "" });
+        });
+      });
+    });
+
+    it('should create set message when writing to object reference stored in flow context, by function node (= sync)', function (done) {
+      var flow = [{
+        id: "f1",
+        type: "tab"
+      }, {
+        id: "fn1",
+        type: "function",
+        z: "f1",
+        func: "let obj = flow.get(\"test_object\");\nobj.prop = \"new\";\nreturn msg;",
+        outputs: 0
+      }, {
+        id: "cm1",
+        z: "f1",
+        type: "context-monitor",
+        monitoring: [
+          {
+            "scope": "flow",
+            "flow": ".",
+            "key": "test_object"
+          }
+        ],
+        wires: [["h1"], []]
+      }, {
+        id: "h1", type: "helper", wires: []
+      }];
+      helper.load([monitorNode, functionNode], flow, function () {
+        initContext(function () {
+          let fn1 = helper.getNode("fn1");
+          let h1 = helper.getNode("h1");
+
+          let cnt = 0;
+          let expect = [{
+            topic: "test_object",
+            payload: { "prop": "value" },
+            monitoring: {
+              "source": "fn1",
+              scope: "flow",
               flow: "f1",
-              "key": "test_flow"
+              key: "test_object"
             }
-          ],
-          wires: [["h1"], []]
-        }, {
-          id: "h1", type: "helper", wires: []
-        }];
-        helper.load([monitorNode, changeNode], flow, function () {
-          initContext(function () {
-            let c1 = helper.getNode("c1");
-            let h1 = helper.getNode("h1");
-            h1.on("input", function (msg) {
-              try {
-                delete msg["_msgid"];
-                msg.should.eql({
-                  topic: "test_flow",
-                  payload: "value",
-                  monitoring: {
-                    "source": "c1",
-                    scope: "flow",
-                    flow: "f1",
-                    key: "test_flow"
-                  }
-                })
-                done();
-              } catch (err) {
-                done(err);
-              }
-            });
-            c1.receive({ payload: "" });
-          });
-        });
-      });
-
-      it('should create (single monitor) change message when global scope context is written to by function node (= sync)', function (done) {
-        var flow = [{
-          id: "f1",
-          type: "tab"
-        }, {
-          "id": "fn1",
-          "type": "function",
-          "z": "f1",
-          "func": "global.set(\"test_global\", \"value\");\nreturn msg;",
-          "outputs": 0
-        }, {
-          id: "cm1",
-          type: "context-monitor",
-          monitoring: [
-            {
-              "scope": "global",
-              "key": "test_global"
-            }
-          ],
-          wires: [[], ["h1"]]
-        }, {
-          id: "h1", type: "helper", wires: []
-        }];
-        helper.load([monitorNode, functionNode], flow, function () {
-          initContext(function () {
-            let fn1 = helper.getNode("fn1");
-            let h1 = helper.getNode("h1");
-            h1.on("input", function (msg) {
-              try {
-                delete msg["_msgid"];
-                msg.should.eql({
-                  topic: "test_global",
-                  payload: "value",
-                  monitoring: {
-                    "source": "fn1",
-                    scope: "global",
-                    key: "test_global",
-                    previous: undefined
-                  }
-                })
-                done();
-              } catch (err) {
-                done(err);
-              }
-            });
-            fn1.receive({ payload: "" });
-          });
-        });
-      });
-
-      it('should create (single monitor) change message when flow scope context is written to by function node (= sync)', function (done) {
-        var flow = [{
-          id: "f1",
-          type: "tab"
-        }, {
-          "id": "fn1",
-          "type": "function",
-          "z": "f1",
-          "func": "flow.set(\"test_flow\", \"value\");\nreturn msg;",
-          "outputs": 0
-        }, {
-          id: "cm1",
-          type: "context-monitor",
-          monitoring: [
-            {
-              "scope": "flow",
-              "flow": "f1",
-              "key": "test_flow"
-            }
-          ],
-          wires: [[], ["h1"]]
-        }, {
-          id: "h1", type: "helper", wires: []
-        }];
-        helper.load([monitorNode, functionNode], flow, function () {
-          initContext(function () {
-            let fn1 = helper.getNode("fn1");
-            let h1 = helper.getNode("h1");
-            h1.on("input", function (msg) {
-              try {
-                delete msg["_msgid"];
-                msg.should.eql({
-                  topic: "test_flow",
-                  payload: "value",
-                  monitoring: {
-                    "source": "fn1",
-                    scope: "flow",
-                    flow: "f1",
-                    key: "test_flow",
-                    previous: undefined
-                  }
-                })
-                done();
-              } catch (err) {
-                done(err);
-              }
-            });
-            fn1.receive({ payload: "" });
-          });
-        });
-      });
-
-      it('should create (single monitor) change message when node scope context is written to by function node (= sync)', function (done) {
-        var flow = [{
-          id: "f1",
-          type: "tab"
-        }, {
-          "id": "fn1",
-          "type": "function",
-          "z": "f1",
-          "func": "context.set(\"test_node\", \"value\");\nreturn msg;",
-          "outputs": 0
-        }, {
-          id: "cm1",
-          z: "f1",
-          type: "context-monitor",
-          monitoring: [
-            {
-              "scope": "node",
-              "flow": ".",
-              "node": "fn1",
-              "key": "test_node"
-            }
-          ],
-          wires: [[], ["h1"]]
-        }, {
-          id: "h1", type: "helper", wires: []
-        }];
-        helper.load([monitorNode, functionNode], flow, function () {
-          initContext(function () {
-            let fn1 = helper.getNode("fn1");
-            let h1 = helper.getNode("h1");
-            h1.on("input", function (msg) {
-              try {
-                delete msg["_msgid"];
-                msg.should.eql({
-                  topic: "test_node",
-                  payload: "value",
-                  monitoring: {
-                    "source": "fn1",
-                    scope: "node",
-                    flow: "f1",
-                    node: "fn1",
-                    key: "test_node",
-                    previous: undefined
-                  }
-                })
-                done();
-              } catch (err) {
-                done(err);
-              }
-            });
-            fn1.receive({ payload: "" });
-          });
-        });
-      });
-
-      it('should create (single monitor) change message when global scope context is written to by change node (= async)', function (done) {
-        var flow = [{
-          id: "f1",
-          type: "tab"
-        }, {
-          id: "c1",
-          z: "f1",
-          type: "change",
-          "name": "",
-          "rules": [
-            {
-              "t": "set",
-              "p": "test_global",
-              "pt": "global",
-              "to": "value",
-              "tot": "str"
-            }
-          ]
-        }, {
-          id: "cm1",
-          type: "context-monitor",
-          monitoring: [
-            {
-              "scope": "global",
-              "key": "test_global"
-            }
-          ],
-          wires: [[], ["h1"]]
-        }, {
-          id: "h1", type: "helper", wires: []
-        }];
-        helper.load([monitorNode, changeNode], flow, function () {
-          initContext(function () {
-            let c1 = helper.getNode("c1");
-            let h1 = helper.getNode("h1");
-            h1.on("input", function (msg) {
-              try {
-                delete msg["_msgid"];
-                msg.should.eql({
-                  topic: "test_global",
-                  payload: "value",
-                  monitoring: {
-                    "source": "c1",
-                    scope: "global",
-                    key: "test_global",
-                    previous: undefined
-                  }
-                })
-                done();
-              } catch (err) {
-                done(err);
-              }
-            });
-            c1.receive({ payload: "" });
-          });
-        });
-      });
-
-      it('should create (single monitor) change message when flow scope context is written to by change node (= async)', function (done) {
-        var flow = [{
-          id: "f1",
-          type: "tab"
-        }, {
-          id: "c1",
-          z: "f1",
-          type: "change",
-          "name": "",
-          "rules": [
-            {
-              "t": "set",
-              "p": "test_flow",
-              "pt": "flow",
-              "to": "value",
-              "tot": "str"
-            }
-          ]
-        }, {
-          id: "cm1",
-          type: "context-monitor",
-          monitoring: [
-            {
-              "scope": "flow",
-              flow: "f1",
-              "key": "test_flow"
-            }
-          ],
-          wires: [[], ["h1"]]
-        }, {
-          id: "h1", type: "helper", wires: []
-        }];
-        helper.load([monitorNode, changeNode], flow, function () {
-          initContext(function () {
-            let c1 = helper.getNode("c1");
-            let h1 = helper.getNode("h1");
-            h1.on("input", function (msg) {
-              try {
-                delete msg["_msgid"];
-                msg.should.eql({
-                  topic: "test_flow",
-                  payload: "value",
-                  monitoring: {
-                    "source": "c1",
-                    scope: "flow",
-                    flow: "f1",
-                    key: "test_flow",
-                    previous: undefined
-                  }
-                })
-                done();
-              } catch (err) {
-                done(err);
-              }
-            });
-            c1.receive({ payload: "" });
-          });
-        });
-      });
-
-      it('should create (two monitors) two set messages when node scope context is written to by function node (= sync)', function (done) {
-        var flow = [{
-          id: "f1",
-          type: "tab"
-        }, {
-          "id": "fn1",
-          "type": "function",
-          "z": "f1",
-          "func": "context.set(\"test_node\", \"value\");\nreturn msg;",
-          "outputs": 0
-        }, {
-          id: "cm1",
-          z: "f1",
-          type: "context-monitor",
-          monitoring: [
-            {
-              "scope": "node",
-              "flow": ".",
-              "node": "fn1",
-              "key": "test_node"
-            }
-          ],
-          wires: [["j1"], []]
-        }, {
-          id: "cm2",
-          z: "f1",
-          type: "context-monitor",
-          monitoring: [
-            {
-              "scope": "node",
-              "flow": ".",
-              "node": "fn1",
-              "key": "test_node"
-            }
-          ],
-          wires: [["j1"], []]
-        }, {
-          "id": "j1",
-          "type": "join",
-          "z": "f1",
-          "mode": "custom",
-          "build": "array",
-          "property": "",
-          "propertyType": "full",
-          "key": "topic",
-          "count": "2",
-          wires: [["h1"]]
-      }, {
-          id: "h1", type: "helper", wires: []
-        }];
-        helper.load([monitorNode, functionNode, joinNode], flow, function () {
-          initContext(function () {
-            let fn1 = helper.getNode("fn1");
-            let h1 = helper.getNode("h1");
-            h1.on("input", function (msg) {
-              try {
-                msg.payload.length.should.eql(2);
-                msg.topic.should.eql("test_node");
-                done();
-              } catch (err) {
-                done(err);
-              }
-            });
-            fn1.receive({ payload: "" });
-          });
-        });
-      });
-
-      it('should create (two monitors) two set messages when flow scope context is written to by change node (= async)', function (done) {
-        var flow = [{
-          id: "f1",
-          type: "tab"
-        }, {
-          id: "c1",
-          z: "f1",
-          type: "change",
-          "name": "",
-          "rules": [
-            {
-              "t": "set",
-              "p": "test_flow",
-              "pt": "flow",
-              "to": "value",
-              "tot": "str"
-            }
-          ]
-        }, {
-          id: "cm1",
-          z: "f1",
-          type: "context-monitor",
-          monitoring: [
-            {
-              "scope": "flow",
-              "flow": ".",
-              "key": "test_flow"
-            }
-          ],
-          wires: [["j1"], []]
-        }, {
-          id: "cm2",
-          z: "f1",
-          type: "context-monitor",
-          monitoring: [
-            {
-              "scope": "flow",
-              "flow": ".",
-              "key": "test_flow"
-            }
-          ],
-          wires: [["j1"], []]
-        }, {
-          "id": "j1",
-          "type": "join",
-          "z": "f1",
-          "mode": "custom",
-          "build": "array",
-          "property": "",
-          "propertyType": "full",
-          "key": "topic",
-          "count": "2",
-          wires: [["h1"]]
-      }, {
-          id: "h1", type: "helper", wires: []
-        }];
-        helper.load([monitorNode, changeNode, joinNode], flow, function () {
-          initContext(function () {
-            let c1 = helper.getNode("c1");
-            let h1 = helper.getNode("h1");
-            h1.on("input", function (msg) {
-              try {
-                msg.payload.length.should.eql(2);
-                msg.topic.should.eql("test_flow");
-                done();
-              } catch (err) {
-                done(err);
-              }
-            });
-            c1.receive({ payload: "" });
-          });
-        });
-      });
-    
-      it('should create (two monitors) two change messages when node scope context is written to by function node (= sync)', function (done) {
-        var flow = [{
-          id: "f1",
-          type: "tab"
-        }, {
-          "id": "fn1",
-          "type": "function",
-          "z": "f1",
-          "func": "context.set(\"test_node\", \"value\");\nreturn msg;",
-          "outputs": 0
-        }, {
-          id: "cm1",
-          z: "f1",
-          type: "context-monitor",
-          monitoring: [
-            {
-              "scope": "node",
-              "flow": ".",
-              "node": "fn1",
-              "key": "test_node"
-            }
-          ],
-          wires: [[], ["j1"]]
-        }, {
-          id: "cm2",
-          z: "f1",
-          type: "context-monitor",
-          monitoring: [
-            {
-              "scope": "node",
-              "flow": ".",
-              "node": "fn1",
-              "key": "test_node"
-            }
-          ],
-          wires: [[], ["j1"]]
-        }, {
-          "id": "j1",
-          "type": "join",
-          "z": "f1",
-          "mode": "custom",
-          "build": "array",
-          "property": "",
-          "propertyType": "full",
-          "key": "topic",
-          "count": "2",
-          wires: [["h1"]]
-      }, {
-          id: "h1", type: "helper", wires: []
-        }];
-        helper.load([monitorNode, functionNode, joinNode], flow, function () {
-          initContext(function () {
-            let fn1 = helper.getNode("fn1");
-            let h1 = helper.getNode("h1");
-            h1.on("input", function (msg) {
-              try {
-                msg.payload.length.should.eql(2);
-                msg.topic.should.eql("test_node");
-                done();
-              } catch (err) {
-                done(err);
-              }
-            });
-            fn1.receive({ payload: "" });
-          });
-        });
-      });
-
-      it('should create (two monitors) two change messages when flow scope context is written to by change node (= async)', function (done) {
-        var flow = [{
-          id: "f1",
-          type: "tab"
-        }, {
-          id: "c1",
-          z: "f1",
-          type: "change",
-          "name": "",
-          "rules": [
-            {
-              "t": "set",
-              "p": "test_flow",
-              "pt": "flow",
-              "to": "value",
-              "tot": "str"
-            }
-          ]
-        }, {
-          id: "cm1",
-          z: "f1",
-          type: "context-monitor",
-          monitoring: [
-            {
-              "scope": "flow",
-              "flow": ".",
-              "key": "test_flow"
-            }
-          ],
-          wires: [[], ["j1"]]
-        }, {
-          id: "cm2",
-          z: "f1",
-          type: "context-monitor",
-          monitoring: [
-            {
-              "scope": "flow",
-              "flow": ".",
-              "key": "test_flow"
-            }
-          ],
-          wires: [[], ["j1"]]
-        }, {
-          "id": "j1",
-          "type": "join",
-          "z": "f1",
-          "mode": "custom",
-          "build": "array",
-          "property": "",
-          "propertyType": "full",
-          "key": "topic",
-          "count": "2",
-          wires: [["h1"]]
-      }, {
-          id: "h1", type: "helper", wires: []
-        }];
-        helper.load([monitorNode, changeNode, joinNode], flow, function () {
-          initContext(function () {
-            let c1 = helper.getNode("c1");
-            let h1 = helper.getNode("h1");
-            h1.on("input", function (msg) {
-              try {
-                msg.payload.length.should.eql(2);
-                msg.topic.should.eql("test_flow");
-                done();
-              } catch (err) {
-                done(err);
-              }
-            });
-            c1.receive({ payload: "" });
-          });
-        });
-      });
-
-      it('should create set message when writing to object reference stored in flow context, by function node (= sync)', function (done) {
-        var flow = [{
-          id: "f1",
-          type: "tab"
-        }, {
-          id: "fn1",
-          type: "function",
-          z: "f1",
-          func: "let obj = flow.get(\"test_object\");\nobj.prop = \"new\";\nreturn msg;",
-          outputs: 0
-        }, {
-          id: "cm1",
-          z: "f1",
-          type: "context-monitor",
-          monitoring: [
-            {
-              "scope": "flow",
-              "flow": ".",
-              "key": "test_object"
-            }
-          ],
-          wires: [["h1"], []]
-        }, {
-          id: "h1", type: "helper", wires: []
-        }];
-        helper.load([monitorNode, functionNode], flow, function () {
-          initContext(function () {
-            let fn1 = helper.getNode("fn1");
-            let h1 = helper.getNode("h1");
-
-            let cnt = 0;
-            let expect = [{
-              topic: "test_object",
-              payload: { "prop": "value" },
+            }, {
+              topic: "test_object.prop",
+              payload: "new",
               monitoring: {
                 "source": "fn1",
                 scope: "flow",
                 flow: "f1",
                 key: "test_object"
               }
-              }, {
-                topic: "test_object.prop",
-                payload: "new",
-                monitoring: {
-                  "source": "fn1",
-                  scope: "flow",
-                  flow: "f1",
-                  key: "test_object"
-                }
-              }
-            ]
-            h1.on("input", function (msg) {
-              try {
-                delete msg["_msgid"];
-                msg.should.eql(expect[cnt])
-                cnt += 1;
-                if (cnt >= expect.length) {
-                  done();
-                }
-              } catch (err) {
-                done(err);
-              }
-            });
-            fn1.context().flow.set("test_object", {"prop": "value"});
-            fn1.receive({ payload: "" });
-          });
-        });
-      });
-
-      it('should create set message when writing to object reference stored in flow context, complex key, by function node (= sync)', function (done) {
-        var flow = [{
-          id: "f1",
-          type: "tab"
-        }, {
-          id: "fn1",
-          type: "function",
-          z: "f1",
-          func: "let obj = flow.get(\"test_object\");\nobj.prop = \"new\";\nreturn msg;",
-          outputs: 0
-        }, {
-          id: "cm1",
-          z: "f1",
-          type: "context-monitor",
-          monitoring: [
-            {
-              "scope": "flow",
-              "flow": ".",
-              "key": "test_object['prop']"
-            }
-          ],
-          wires: [["h1"], []]
-        }, {
-          id: "h1", type: "helper", wires: []
-        }];
-        helper.load([monitorNode, functionNode], flow, function () {
-          initContext(function () {
-            let fn1 = helper.getNode("fn1");
-            let h1 = helper.getNode("h1");
-
-            let cnt = 0;
-            let expect = [
-              // {
-              // topic: "test_object",
-              // payload: { "prop": "value" },
-              // monitoring: {
-              //   "source": "fn1",
-              //   scope: "flow",
-              //   flow: "f1",
-              //   key: "test_object"
-              // }
-              // }, 
-              {
-                topic: "test_object.prop",
-                payload: "new",
-                monitoring: {
-                  "source": "fn1",
-                  scope: "flow",
-                  flow: "f1",
-                  key: "test_object['prop']"
-                }
-              }
-            ]
-            h1.on("input", function (msg) {
-              try {
-                delete msg["_msgid"];
-                msg.should.eql(expect[cnt])
-                cnt += 1;
-                if (cnt >= expect.length) {
-                  done();
-                }
-              } catch (err) {
-                done(err);
-              }
-            });
-            // this doesn't trigger, as context key references nested property
-            fn1.context().flow.set("test_object", {"prop": "value"});
-            fn1.receive({ payload: "" });
-          });
-        });
-      });
-
-      it('should create set message when writing to property of object stored in flow context, by change node (= async)', function (done) {
-        var flow = [{
-          id: "f1",
-          type: "tab"
-        }, {
-          id: "c1",
-          z: "f1",
-          type: "change",
-          "name": "",
-          "rules": [
-            {
-                "t": "set",
-                "p": "test_object.prop",
-                "pt": "flow",
-                "to": "new",
-                "tot": "str"
             }
           ]
-        }, {
-          id: "cm1",
-          z: "f1",
-          type: "context-monitor",
-          monitoring: [
-            {
-              "scope": "flow",
-              "flow": ".",
-              "key": "test_object['prop']"
+          h1.on("input", function (msg) {
+            try {
+              delete msg["_msgid"];
+              msg.should.eql(expect[cnt])
+              cnt += 1;
+              if (cnt >= expect.length) {
+                done();
+              }
+            } catch (err) {
+              done(err);
             }
-          ],
-          wires: [["h1"], []]
-        }, {
-          id: "h1", type: "helper", wires: []
-        }];
-        helper.load([monitorNode, changeNode], flow, function () {
-          initContext(function () {
-            let c1 = helper.getNode("c1");
-            let h1 = helper.getNode("h1");
-
-            let cnt = 0;
-            let expect = [
-              {
-                topic: "test_object.prop",
-                payload: "new",
-                monitoring: {
-                  "source": "c1",
-                  scope: "flow",
-                  flow: "f1",
-                  key: "test_object['prop']"
-                }
-              }
-            ]
-            h1.on("input", function (msg) {
-              try {
-                delete msg["_msgid"];
-                msg.should.eql(expect[cnt])
-                cnt += 1;
-                if (cnt >= expect.length) {
-                  done();
-                }
-              } catch (err) {
-                done(err);
-              }
-            });
-            // this doesn't trigger, as context key references nested property
-            c1.context().flow.set("test_object", {"prop": "value"});
-            c1.receive({ payload: "" });
           });
+          fn1.context().flow.set("test_object", {"prop": "value"});
+          fn1.receive({ payload: "" });
         });
       });
+    });
 
-      
+    it('should create set message when writing to object reference stored in flow context, complex key, by function node (= sync)', function (done) {
+      var flow = [{
+        id: "f1",
+        type: "tab"
+      }, {
+        id: "fn1",
+        type: "function",
+        z: "f1",
+        func: "let obj = flow.get(\"test_object\");\nobj.prop = \"new\";\nreturn msg;",
+        outputs: 0
+      }, {
+        id: "cm1",
+        z: "f1",
+        type: "context-monitor",
+        monitoring: [
+          {
+            "scope": "flow",
+            "flow": ".",
+            "key": "test_object['prop']"
+          }
+        ],
+        wires: [["h1"], []]
+      }, {
+        id: "h1", type: "helper", wires: []
+      }];
+      helper.load([monitorNode, functionNode], flow, function () {
+        initContext(function () {
+          let fn1 = helper.getNode("fn1");
+          let h1 = helper.getNode("h1");
+
+          let cnt = 0;
+          let expect = [
+            // {
+            // topic: "test_object",
+            // payload: { "prop": "value" },
+            // monitoring: {
+            //   "source": "fn1",
+            //   scope: "flow",
+            //   flow: "f1",
+            //   key: "test_object"
+            // }
+            // }, 
+            {
+              topic: "test_object.prop",
+              payload: "new",
+              monitoring: {
+                "source": "fn1",
+                scope: "flow",
+                flow: "f1",
+                key: "test_object['prop']"
+              }
+            }
+          ]
+          h1.on("input", function (msg) {
+            try {
+              delete msg["_msgid"];
+              msg.should.eql(expect[cnt])
+              cnt += 1;
+              if (cnt >= expect.length) {
+                done();
+              }
+            } catch (err) {
+              done(err);
+            }
+          });
+          // this doesn't trigger, as context key references nested property
+          fn1.context().flow.set("test_object", {"prop": "value"});
+          fn1.receive({ payload: "" });
+        });
+      });
+    });
+
+    it('should create set message when writing to property of object stored in flow context, by change node (= async)', function (done) {
+      var flow = [{
+        id: "f1",
+        type: "tab"
+      }, {
+        id: "c1",
+        z: "f1",
+        type: "change",
+        "name": "",
+        "rules": [
+          {
+              "t": "set",
+              "p": "test_object.prop",
+              "pt": "flow",
+              "to": "new",
+              "tot": "str"
+          }
+        ]
+      }, {
+        id: "cm1",
+        z: "f1",
+        type: "context-monitor",
+        monitoring: [
+          {
+            "scope": "flow",
+            "flow": ".",
+            "key": "test_object['prop']"
+          }
+        ],
+        wires: [["h1"], []]
+      }, {
+        id: "h1", type: "helper", wires: []
+      }];
+      helper.load([monitorNode, changeNode], flow, function () {
+        initContext(function () {
+          let c1 = helper.getNode("c1");
+          let h1 = helper.getNode("h1");
+
+          let cnt = 0;
+          let expect = [
+            {
+              topic: "test_object.prop",
+              payload: "new",
+              monitoring: {
+                "source": "c1",
+                scope: "flow",
+                flow: "f1",
+                key: "test_object['prop']"
+              }
+            }
+          ]
+          h1.on("input", function (msg) {
+            try {
+              delete msg["_msgid"];
+              msg.should.eql(expect[cnt])
+              cnt += 1;
+              if (cnt >= expect.length) {
+                done();
+              }
+            } catch (err) {
+              done(err);
+            }
+          });
+          // this doesn't trigger, as context key references nested property
+          c1.context().flow.set("test_object", {"prop": "value"});
+          c1.receive({ payload: "" });
+        });
+      });
+    });
+
   });
 });
