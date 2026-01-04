@@ -79,13 +79,64 @@
             function add_context(tpl) {
                 let c = {
                     "scope": tpl.scope ?? "global",
-                    // decode "this flow" marker
-                    "flow": ("." === tpl.flow) ? node.z : tpl.flow,
+
+                    // There's a special flow marker "." that indicates "Current Flow"!
+                    "flow": tpl.flow ?? ".",
+                    
                     "node": tpl.node,
-                    "key": tpl.key ?? ""
+                    "key": tpl.key ?? "",
+
+                    // only to display invalid definitions
+                    "flow_label": "." == tpl.flow ? "Current Flow" : (tpl.flow_label ?? "Unknown Flow"),
+                    "node_label": tpl.node_label ?? "Unknown Node"
                 }
+
+                // prior 2.0, unnecessary data was stored in the config, that now might cause issues.
+                switch (c.scope) {
+                    case "global":
+                        delete c.flow;
+                    case "flow":
+                        delete c.node;
+                    default:
+                        delete c.group;
+                }
+
                 ctx.push(c);
                 return c;
+            }
+
+            function get_node_options(flow_id) {
+                let opts = [];
+                
+                if ("." == flow_id) {
+                    // try to get id of "Current Flow"
+                    flow_id = RED.nodes.workspace(node.z)?.id ?? RED.nodes.subflow(node.z)?.id;
+                }
+
+                RED.nodes.eachNode( n => {
+
+                    if (n.z == flow_id) {
+
+                        // from 25-status.html
+                        let nodeDef = RED.nodes.getType(n.type);
+                        let label;
+                        let sublabel;
+                        if (nodeDef) {
+                            let l = nodeDef.label;
+                            label = (typeof l === "function" ? l.call(n) : l)||"";
+                        }
+                        if (!nodeDef || !label) {
+                            label = n.type;
+                        }
+
+                        opts.push({
+                            value: n.id,
+                            label: label
+                        });
+                    }
+                });
+
+                return opts;
             }
 
             $('#node-input-context-container').css('min-height','150px').css('min-width','450px').editableList({
@@ -93,6 +144,12 @@
 
                     let data = add_context(cfg);
                     data.index = index;
+
+                    // to manage the visual state e.g. of the error indicators
+                    data.ok = {
+                        flow: true,
+                        node: true,
+                    }
 
                     // cfg is the data object from the node definition, stored in the 'data' store.
                     // We shall keep cfg untouched to ensure automated (non-)dirty check by the runtime.
@@ -118,17 +175,25 @@
                     $(`<input type="text" id="context-scope-flows-${index}" placeholder="Flows">`).appendTo(line_flow);
                     line_flow.appendTo(fragment);
 
-                    // let line_group = $('<div class="form-row" style="margin-bottom: 6px">');
-                    // // $(`<label for="context-scope-groups-${index}"" style="margin-left:10px; width: 90px"><i class="fa fa-tag"></i> Groups</label>`).appendTo(line_group);
-                    // $(`<label for="context-scope-groups-${index}"" style="margin-left:10px; width: 90px">Groups: </label>`).appendTo(line_group);
-                    // $(`<input type="text" id="context-scope-groups-${index}" placeholder="Groups">`).appendTo(line_group);
-                    // line_group.appendTo(fragment);
+                    let line_flow_missing = $('<div class="form-row" style="margin-bottom: 6px">');
+                    // $(`<label for="context-scope-key-${index}"" style="margin-left:10px; width: 90px"><i class="fa fa-tag"></i> Key</label>`).appendTo(line_key);
+                    $(`<label for="context-scope-flow-error-${index}" style="margin-left:10px; width: 90px"></label>`).appendTo(line_flow_missing);
+                    //$(`<input type="text" id="context-scope-key-${index}" placeholder="Context Variable Key">`).appendTo(line_key);
+                    $(`<div id="context-scope-flow-error-${index}" style="display:inline"><i class="fa fa-exclamation-circle" style="color: red"></i><span style="font-size: small"> This flow does not exist.</span></div>`).appendTo(line_flow_missing);
+                    line_flow_missing.appendTo(fragment).hide();
 
                     let line_node = $('<div class="form-row" style="margin-bottom: 6px">');
                     // $(`<label for="context-scope-nodes-${index}"" style="margin-left:10px; width: 90px"><i class="fa fa-tag"></i> Nodes</label>`).appendTo(line_node);
                     $(`<label for="context-scope-nodes-${index}" style="margin-left:10px; width: 90px">Nodes: </label>`).appendTo(line_node);
                     $(`<input type="text" id="context-scope-nodes-${index}" placeholder="Nodes">`).appendTo(line_node);
                     line_node.appendTo(fragment);
+
+                    let line_node_missing = $('<div class="form-row" style="margin-bottom: 6px">');
+                    // $(`<label for="context-scope-key-${index}"" style="margin-left:10px; width: 90px"><i class="fa fa-tag"></i> Key</label>`).appendTo(line_key);
+                    $(`<label for="context-scope-node-error-${index}" style="margin-left:10px; width: 90px"></label>`).appendTo(line_node_missing);
+                    //$(`<input type="text" id="context-scope-key-${index}" placeholder="Context Variable Key">`).appendTo(line_key);
+                    $(`<div id="context-scope-node-error-${index}" style="display:inline"><i class="fa fa-exclamation-circle" style="color: red"></i><span style="font-size: small"> This node does not exist.</span></div>`).appendTo(line_node_missing);
+                    line_node_missing.appendTo(fragment).hide();
 
                     let line_key = $('<div class="form-row" style="margin-bottom: 6px">');
                     // $(`<label for="context-scope-key-${index}"" style="margin-left:10px; width: 90px"><i class="fa fa-tag"></i> Key</label>`).appendTo(line_key);
@@ -138,174 +203,207 @@
 
                     container[0].appendChild(fragment);
 
+                    let scope_opts = [
+                        { value: "global", label: "Global"},
+                        { value: "flow", label: "Flow"},
+                        { value: "node", label: "Node"},
+                    ];
+
+                    let flow_opts = [{
+                        value: ".",     // special marker
+                        label: "Current Flow"
+                    }];
+
+                    RED.nodes.eachWorkspace( ws => {
+                        flow_opts.push({
+                            value: ws.id,
+                            label: ws.label
+                        });
+                    });
+
+                    let node_opts = get_node_options(data.flow ?? ".");
+
+                    // this function - called by TypedInput - displays the label of the node 
+                    // and (!!) does as well the error management
+                    let node_valueLabel = function(container, value) {
+
+                        // If an "invalid" value was selected, this function always receives value == ""!
+                        // In such a case, go via data.node (!!)
+                        // =>> line 1257 @ packages/node_modules/@node-red/editor-client/src/js/ui/common/typedInput.js
+                        if ("" === value) {
+                            value = data.node;
+                        }
+
+                        let err = false;    // to draw red frame in case of anomaly
+                        let f = node_opts?.filter( opts => {
+                            return opts?.value == value;
+                        });
+
+                        if (node_opts.length < 1) {
+                            container.text("No nodes in this flow.");
+                            line_node_missing.hide();
+                            data.ok.node = true;
+                            err = true;
+                        } else if (f.length > 0) {
+                            container.text(f[0].label);
+                            line_node_missing.hide();
+                            data.ok.node = true;
+                            err = false;
+                        } else {
+                            let label;
+                            switch (value) {
+                                case ".": {
+                                    label = "No node selected."
+                                    line_node_missing.hide();
+                                    data.ok.node = true;
+                                    break;
+                                }
+                                default: {
+                                    console.log("@default");
+                                    label = data.node_label ?? "Unknown Node";
+                                    line_node_missing.show();
+                                    data.ok.node = false;
+                                }
+                            }
+                            container.text(label);
+                            err = true;
+                        }
+                        container.css("color", (err == true) ? "darkgrey" : "var(--red-ui-form-text-color)");
+
+                        // This draws / removes the red frame around the widget
+                        setTimeout(() => {
+                            $(`#context-scope-nodes-${index}`).next().toggleClass("input-error", err);
+                        }, 150);
+                    }
+
                     $(`#context-scope-${index}`).typedInput({type:"scope", types:[{
                         value: "scope",
-                        options: [
-                            { value: "global", label: "Global"},
-                            { value: "flow", label: "Flow"},
-                            // { value: "group", label: "Group"},
-                            { value: "node", label: "Node"},
-                        ]
+                        options: scope_opts
                     }]}).on("change", function (event, type, value) {
+
                         switch (value) {
                             case "global": {
                                 line_flow.hide();
-                                // line_group.hide();
+                                line_flow_missing.toggle(false);
                                 line_node.hide();
+                                line_node_missing.toggle(false);
                                 break;
                             }
                             case "flow": {
                                 line_flow.show();
-                                // line_group.hide();
+                                line_flow_missing.toggle(!data.ok.flow);
                                 line_node.hide();
-                                break;
-                            }
-                            case "group": {
-                                line_flow.show();
-                                // line_group.show();
-                                line_node.hide();
+                                line_node_missing.toggle(false);
+
+                                // Initialize if not defined
+                                if (!_initing) {
+                                    data.flow ??= ".";
+                                    if (data.flow !== $(`#context-scope-flows-${index}`).typedInput("value")) {
+                                        $(`#context-scope-flows-${index}`).typedInput("value", data.flow);
+                                    }
+                                }
                                 break;
                             }
                             case "node": {
                                 line_flow.show();
-                                // line_group.hide();
+                                line_flow_missing.toggle(!data.ok.flow);
                                 line_node.show();
-                                break;
+                                line_node_missing.toggle(!data.ok.node);
+
+                                if (!_initing) {
+                                    // Initialize if not defined
+                                    data.flow ??= ".";
+                                    if (data.flow !== $(`#context-scope-flows-${index}`).typedInput("value")) {
+                                        $(`#context-scope-flows-${index}`).typedInput("value", data.flow);
+                                    }
+                                    data.node ??= $(`#context-scope-nodes-${index}`).typedInput("value") ?? ".";
+                                    if (data.node !== $(`#context-scope-nodes-${index}`).typedInput("value")) {
+                                        $(`#context-scope-nodes-${index}`).typedInput("value", data.node);
+                                    }
+                                }
                             }
                         }
                         if (!_initing) {
                             data.scope = value;
-
-                            data.flow = data.flow ?? $(`#context-scope-flows-${index}`).typedInput("value");
-                            // data.group = data.group ?? $(`#context-scope-groups-${index}`).typedInput("value");
-                            data.node = data.node ?? $(`#context-scope-nodes-${index}`).typedInput("value");
                             node.dirty = true;
                         }
-
-                        switch (data.scope) {
-                            // case "group": {
-                            //     $(`#context-scope-key-${index}`).prop("disabled", data.group == "");
-                            //     break;
-                            // }
-                            case "node": {
-                                $(`#context-scope-key-${index}`).prop("disabled", data.node == "");
-                                break;
-                            }
-                        }
-
-                    });
-
-                    let flow_opts = [];
-                    // let group_opts = [];
-                    let node_opts;
-
-                    RED.nodes.eachWorkspace( cb => {
-                        flow_opts.push({
-                            value: cb.id,
-                            label: cb.label
-                        });
                     });
 
                     $(`#context-scope-flows-${index}`).typedInput({type:"flow", types:[{
                         value: "flow",
-                        options: flow_opts
-                    }]}).on("change", function (event, type, value) {
+                        options: flow_opts,
+                        valueLabel: function(container, value) {
 
-                        // RED.nodes.eachGroup( g => {
-                        //     console.log(g)
-                        //     if (g.z == value) {
-                        //         group_opts.push({
-                        //             value: g.id,
-                        //             label: g.label ?? g.id
-                        //         });
-                        //     }
-                        // });
-                        // let gol = group_opts.length;
-                        // $(`#context-scope-groups-${index}`).typedInput('disable', gol < 1);
-                        // if (gol < 1) {
-                        //     group_opts.push({
-                        //         value: undefined,
-                        //         label: "No group in this flow"
-                        //     })
-                        // }
-                        // $(`#context-scope-groups-${index}`).typedInput('types', [{options: group_opts}]);
-                        // $(`#context-scope-groups-${index}`).parent().find(".red-ui-typedInput-option-label").css("color", gol < 1 ? "darkgrey" : "var(--red-ui-form-text-color)");
-                        // if ($(`#context-scope-${index}`).typedInput("value") == "group") {
-                        //     $(`#context-scope-key-${index}`).prop("disabled", gol < 1);
-                        // }
-                                           
-                        node_opts = [];
-                        RED.nodes.eachNode( n => {
-
-                            if (n.z == value) {
-
-                                // from 25-status.html
-                                let nodeDef = RED.nodes.getType(n.type);
-                                let label;
-                                let sublabel;
-                                if (nodeDef) {
-                                    let l = nodeDef.label;
-                                    label = (typeof l === "function" ? l.call(n) : l)||"";
-                                    // sublabel = n.type;
-                                    // if (sublabel.indexOf("subflow:") === 0) {
-                                    //     let subflowId = sublabel.substring(8);
-                                    //     let subflow = RED.nodes.subflow(subflowId);
-                                    //     sublabel = "subflow : "+subflow.name;
-                                    // }
-                                }
-                                if (!nodeDef || !label) {
-                                    label = n.type;
-                                }
-
-                                node_opts.push({
-                                    value: n.id,
-                                    label: label
-                                });
+                            // If an "invalid" value was selected, this function always receives value == ""!
+                            // In such a case, go via data.node (!!)
+                            // =>> line 1257 @ packages/node_modules/@node-red/editor-client/src/js/ui/common/typedInput.js
+                            if ("" === value) {
+                                value = data.flow;
                             }
-                        });
+
+                            let f = flow_opts?.filter( opts => {
+                                return opts?.value == value;
+                            });
+
+                            let err = false;
+
+                            if (f.length > 0) {
+                                // to display the label of the "Current Flow"
+                                if ("." == value) {
+                                    let label = RED.nodes.workspace(node.z)?.label ?? RED.nodes.subflow(node.z)?.name ?? "";
+                                    $(`<div style="display: inline"><span>Current Flow  </span><span style="font-size: x-small">>> ${label}</span></div>`).appendTo(container);
+                                } else {
+                                    container.text(f[0].label);
+                                }
+                                line_flow_missing.hide();
+                                data.ok.flow = true;
+                            } else {
+                                container.text(data.flow_label ?? "Unknown Flow");
+                                line_flow_missing.show();
+                                data.ok.flow = false;
+                                err = true;
+                            }
+                            
+                            container.css("color", (err == true) ? "darkgrey" : "var(--red-ui-form-text-color)");
+                            // This draws / removes the red frame around the widget
+                            setTimeout(() => {
+                                $(`#context-scope-flows-${index}`).next().toggleClass("input-error", err);
+                            }, 150);
+                        }
+                    }]}).on("change", function (event, type, value) {
+                        
+                        node_opts = get_node_options(value);
                         let nol = node_opts.length;
                         $(`#context-scope-nodes-${index}`).typedInput('disable', nol < 1);
-                        if (nol < 1) {
-                            node_opts.push({
-                                value: undefined,
-                                label: "No nodes in this flow"
-                            })
-                        }
+
                         $(`#context-scope-nodes-${index}`).typedInput('types', [{
                             value: "node",
-                            options: node_opts}]);
-                        $(`#context-scope-nodes-${index}`).parent().find(".red-ui-typedInput-option-label").css("color", nol < 1 ? "darkgrey" : "var(--red-ui-form-text-color)");
-                        if ($(`#context-scope-${index}`).typedInput("value") == "node") {
-                            $(`#context-scope-key-${index}`).prop("disabled", nol < 1);
-                        }
+                            options: node_opts,
+                            valueLabel: node_valueLabel
+                        }]);
 
                         if (!_initing) {
+
                             data.flow = value;
+                            data.flow_label = flow_opts.find((opt) => opt.value == value)?.label;                            
+                            data.node = node_opts[0]?.value ?? ".";
+
+                            $(`#context-scope-nodes-${index}`).typedInput('value', data.node);
                             node.dirty = true;
                         }
                     });
 
-                    // $(`#context-scope-groups-${index}`).typedInput({type:"group", types:[{
-                    //     value: "group",
-                    //     options: [
-                    //         { value: "test", label: "TEST"}
-                    //     ]
-                    // }]}).on("change", function (event, type, value) {
-                    //     if (!_initing) {
-                    //         data.group = value;
-                    //         node.dirty = true;
-                    //     }
-                    // });
-
                     $(`#context-scope-nodes-${index}`).typedInput({type:"node", types:[{
                         value: "node",
-                        options: []
+                        options: node_opts,
+                        valueLabel: node_valueLabel
                     }]}).on("change", function (event, type, value) {
+
                         if (!_initing) {
                             data.node = value;
+                            data.node_label = node_opts.find((opt) => opt.value == value)?.label;
                             node.dirty = true;
                         }
-                        $(`#context-scope-key-${index}`).prop("disabled", false);
 
                     });
 
@@ -321,37 +419,22 @@
                         $(this).toggleClass("input-error", !validate_context_key($(this).val()));
                     });
 
-                    // initialize the form
+                    // *****
+                    // Initialize the form
+                    //
+
+                    $(`#context-scope-key-${index}`).val(data.key).prop("disabled", false);
+                    $(`#context-scope-key-${index}`).toggleClass("input-error", !validate_context_key(data.key));
+
+                    if ("global" !== data.scope) {
+                        $(`#context-scope-flows-${index}`).typedInput("value", data.flow ?? flow_opts[0]?.value);
+                        if ("node" == data.scope) {
+                            $(`#context-scope-nodes-${index}`).typedInput("value", data.node);
+                        }
+                    }
+
+                    // Once Flow & Node are set, select Scope...
                     $(`#context-scope-${index}`).typedInput("value", data.scope);
-                    
-                    let f = data.flow || flow_opts[0]?.value;
-                    if (f) {
-                        if (flow_opts.filter( opts => {
-                            return opts?.value == f;
-                        }).length > 0) {
-                            $(`#context-scope-flows-${index}`).typedInput("value", f);
-                        }
-                    }
-
-                    // let g = data.group || group_opts[0]?.value;
-                    // if (g) {
-                    //     if (group_opts.filter( opts => {
-                    //         return opts.value == g;
-                    //     }).length > 0) {
-                    //         $(`#context-scope-groups-${index}`).typedInput("value", g);
-                    //     }
-                    // }
-
-                    let n = data.node || node_opts[0]?.value;
-                    if (n) {
-                        if (node_opts.filter( opts => {
-                            return opts?.value == n;
-                        }).length > 0) {
-                            $(`#context-scope-nodes-${index}`).typedInput("value", n);
-                        }
-                    }
-
-                    $(`#context-scope-key-${index}`).val(data.key).toggleClass("input-error", !validate_context_key(data.key));
 
                     _initing = false;
                 },
@@ -386,7 +469,9 @@
                 node.monitoring.forEach(data => {
                     $('#node-input-context-container').editableList('addItem', data);
                 });
-            } catch {}
+            } catch (err) {
+                console.log(err);
+            }
 
             node._ctx = ctx;
 
@@ -427,22 +512,26 @@
 
             ctx.forEach( data => {
                 delete data.index;
+                delete data.ok;
 
                 switch (data.scope) {
                     case "global":
                         delete data.flow;
+                        delete data.flow_label;
                     case "flow":
-                        delete data.group;
-                    // case "group":
-                    //     delete data.node;
-                    //     break;
+                        delete data.node;
+                        delete data.node_label;
                     case "node":
+                        // handle "current flow" special marker
+                        if ("." == data.flow) {
+                            delete data.flow_label;
+                        }
+                        // for a node, "." means 'no node selected'!
+                        if ("." == data.node) {
+                            delete data.node_label;
+                        }
+                    default:
                         delete data.group;
-                                        }
-
-                if (data.flow == node.z) {
-                    // set a special marker that 'this flow' shall be referenced
-                    data.flow = ".";
                 }
             })
 
