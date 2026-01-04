@@ -25,7 +25,6 @@ function scan_for_require_path(req_path) {
 
     if (process.env.NODE_RED_HOME) {
         found = path.join(process.env.NODE_RED_HOME, "..", req_path);
-        // console.log("@f", found);
         if (fs.existsSync(found)) {
             return found;
         }
@@ -64,7 +63,6 @@ function scan_for_require_path(req_path) {
         }
     }
 
-    // console.log(found);
     return found;
 }
 
@@ -122,14 +120,58 @@ module.exports = function(RED) {
 
         node.monitoring = [];
 
+        let nodes = {};
+        let flows = {}
+
+        // collect all known flows & nodes
+        RED.nodes.eachNode( n => {
+            if (n.id) {
+                nodes[n.id] ??= true;
+            }
+            if (n.z) {
+                flows[n.z] ??= true;
+            }
+        })
+
         scopes.forEach( data => {
 
-            if (!data.key) return;
+            // Let's validate the given monitoring context first...
+            switch (data.scope) {
+                case "node": {
+                    if (!data.node || "." == data.node || data.node.length < 1) {
+                        node.warn('Scope is "Node" but node reference is missing.');
+                        return;
+                    }
+                    if (!nodes[data.node]) {
+                        node.warn('Referenced node does not exist.');
+                        return;
+                    }
+                }
+                case "flow": {
+                    if (!flows[data.flow]) {
+                        if ("." !== data.flow) {
+                            node.warn('Referenced flow does not exist.');
+                            return;
+                        }
+                    }
+                }
+                default: {
+                    if (!data.key || data.key.length < 1) {
+                        node.warn("Monitoring context key is missing.")
+                        return;
+                    }
+                }
+            }
+
+            if ("." === data.flow) {
+                data.flow = node.z;
+            }
+
+            let key = data.key;
+
 
             // support for complex keys
             // test["mm"].value becomes test.mm.value
-            let key = data.key;
-
             try {
                 let key_parts = RED.util.normalisePropertyExpression(key);
                 for (i=0; i<key_parts.length; i++) {
@@ -140,10 +182,6 @@ module.exports = function(RED) {
                 key = key_parts.join('.');
             } catch {
                 return;
-            }
-
-            if ("." === data.flow) {
-                data.flow = node.z;
             }
 
             let ctx = "global";
