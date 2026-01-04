@@ -1928,5 +1928,391 @@ describe(`${package.name}`, function () {
     });
   });
 
+  describe('Subflow', function () {
+
+    it('should create a monitor entry if node placed in a subflow (single instance)', function (done) {
+      var flow = [
+        { id: "t0", type: "tab" },
+        { id: "n1", x: 10, y: 10, z: "t0", type: "subflow:s1", wires: [["n2"]] },
+        { id: "n2", x: 10, y: 10, z: "t0", type: "helper", wires: [] },
+        // Subflow
+        {
+          id: "s1", type: "subflow",
+          in: [{ wires: [] }],
+          out: [{ wires: [] }]
+        },
+        {
+          id: "s1-cm1",
+          z: "s1",
+          type: "context-monitor",
+          monitoring: [{
+            scope: "global",
+            key: "test_global"
+          }],
+        }
+      ];
+
+      helper.load([monitorNode], flow, function () {
+        try {
+          monitor.trace().should.eql({
+            "global:test_global": [
+              {
+                data: {
+                  key: "test_global",
+                  scope: "global"
+                },
+                id: "n1-s1-cm1"
+              }
+            ]
+          });
+          done();
+        } catch (err) {
+          done(err);
+        }
+      });
+    });
+
+    it('should create a monitor entry for each instance of the subflow', function (done) {
+      var flow = [
+        { id: "t0", type: "tab" },
+        { id: "n1", x: 10, y: 10, z: "t0", type: "subflow:s1", wires: [["n2"]] },
+        { id: "n2", x: 10, y: 10, z: "t0", type: "helper", wires: [] },
+        { id: "n3", x: 10, y: 10, z: "t0", type: "subflow:s1", wires: [["n2"]] },
+        // Subflow
+        {
+          id: "s1", type: "subflow",
+          in: [{ wires: [] }],
+          out: [{ wires: [] }]
+        },
+        {
+          id: "s1-cm1",
+          z: "s1",
+          type: "context-monitor",
+          monitoring: [{
+            scope: "global",
+            key: "test_global"
+          }],
+        }
+      ];
+
+      helper.load([functionNode, monitorNode], flow, function () {
+        try {
+          monitor.trace().should.eql({
+            "global:test_global": [
+              {
+                data: {
+                  key: "test_global",
+                  scope: "global"
+                },
+                id: "n1-s1-cm1"
+              },
+              {
+                data: {
+                  key: "test_global",
+                  scope: "global"
+                },
+                id: "n3-s1-cm1"
+              }
+            ]
+          });
+          done();
+        } catch (err) {
+          done(err);
+        }
+
+      });
+    });
+
+    it('should resolve $parent to the id of the flow the subflow belongs to', function (done) {
+      var flow = [
+        { id: "t0", type: "tab" },
+        { id: "n1", x: 10, y: 10, z: "t0", type: "subflow:s1", wires: [["n2"]] },
+        { id: "n2", x: 10, y: 10, z: "t0", type: "helper", wires: [] },
+        // Subflow
+        {
+          id: "s1", type: "subflow",
+          in: [{ wires: [] }],
+          out: [{ wires: [] }]
+        },
+        {
+          id: "s1-cm1",
+          z: "s1",
+          type: "context-monitor",
+          monitoring: [{
+            scope: "flow",
+            flow: ".",
+            key: "$parent.test_flow"
+          }],
+        }
+      ];
+
+      helper.load([monitorNode], flow, function () {
+        try {
+          monitor.trace().should.eql({
+            "t0:test_flow": [
+              {
+                data: {
+                  scope: "flow",
+                  flow: "t0",
+                  key: "test_flow"
+                },
+                id: "n1-s1-cm1"
+              }
+            ]
+          });
+          done();
+        } catch (err) {
+          done(err);
+        }
+      });
+    });
+
+    // *** REMINDER
+    // To access a node of a subflow via helper.getNode(id), you have to use
+    // it's generated id:= `${id of subflow node in the parent flow}-${id of node on subflow}`
+    
+    it('should create set message when global scope context is written to by function node (= sync)', function (done) {
+      var flow = [
+        { id: "t0", type: "tab" },
+        { id: "n1", x: 10, y: 10, z: "t0", type: "subflow:s1", wires: [["n2"]] },
+        { id: "n2", x: 10, y: 10, z: "t0", type: "helper", wires: [] },
+        {
+          id: "fn1", z: "t0", type: "function",
+          func: "global.set(\"test_global\", \"value\");\nreturn msg;"
+        },
+        // Subflow
+        {
+          id: "s1", type: "subflow",
+          in: [{ wires: [] }],
+          out: [{ wires: [{ id: "s1-cm1", port: 0 }]}]
+        },
+        {
+          id: "s1-fn2", z: "s1", type: "function",
+          func: "return msg;",
+        },
+        {
+          id: "s1-cm1",
+          z: "s1",
+          type: "context-monitor",
+          monitoring: [
+            {
+              scope: "global",
+              key: "test_global"
+            }
+          ],
+          wires: []
+        }
+      ];
+      helper.load([monitorNode, functionNode], flow, function () {
+        initContext(function () {
+
+          let fn1 = helper.getNode("fn1");
+          let h1 = helper.getNode("n2");
+
+          h1.on("input", function (msg) {
+            try {
+              delete msg["_msgid"];
+              msg.should.eql({
+                topic: "test_global",
+                payload: "value",
+                monitoring: {
+                  "source": "fn1",
+                  scope: "global",
+                  key: "test_global"
+                }
+              })
+              done();
+            } catch (err) {
+              done(err);
+            }
+          });
+          fn1.receive({ payload: "" });
+        });
+      });
+    });
+
+    it('should create set message when flow scope context is written to by function node in subflow', function (done) {
+      var flow = [
+        { id: "t0", type: "tab" },
+        { id: "n1", x: 10, y: 10, z: "t0", type: "subflow:s1", wires: [["n2"]] },
+        { id: "n2", x: 10, y: 10, z: "t0", type: "helper", wires: [] },
+        {
+          id: "fn1", z: "t0", type: "function",
+          func: "global.set(\"test_global\", \"value\");\nreturn msg;"
+        },
+        // Subflow
+        {
+          id: "s1", type: "subflow",
+          in: [{ wires: [] }],
+          out: [{ wires: [{ id: "s1-cm1", port: 0 }]}]
+        },
+        {
+          id: "s1-fn2", z: "s1", type: "function",
+          func: "flow.set(\"test_flow\", \"value\");\nreturn msg;"
+        },
+        {
+          id: "s1-cm1",
+          z: "s1",
+          type: "context-monitor",
+          monitoring: [
+            {
+              scope: "flow",
+              flow: ".",
+              key: "test_flow"
+            }
+          ],
+          wires: []
+        }
+      ];
+      helper.load([monitorNode, functionNode], flow, function () {
+        initContext(function () {
+
+          let fn2 = helper.getNode("n1-s1-fn2");
+          let h1 = helper.getNode("n2");
+
+          h1.on("input", function (msg) {
+            try {
+              delete msg["_msgid"];
+              msg.should.eql({
+                topic: "test_flow",
+                payload: "value",
+                monitoring: {
+                  source: "s1-fn2",   // not sure this is correct! To be verified... !
+                  flow: "n1",
+                  scope: "flow",
+                  key: "test_flow"
+                }
+              })
+              done();
+            } catch (err) {
+              done(err);
+            }
+          });
+          fn2.receive({ payload: "" });
+        });
+      });
+    });
+
+    it('should create set message when flow scope context is written to by function node in flow; using $parent scope', function (done) {
+      var flow = [
+        { id: "t0", type: "tab" },
+        { id: "n1", x: 10, y: 10, z: "t0", type: "subflow:s1", wires: [["n2"]] },
+        { id: "n2", x: 10, y: 10, z: "t0", type: "helper", wires: [] },
+        {
+          id: "fn1", z: "t0", type: "function",
+          func: "flow.set(\"test_flow\", \"value\");\nreturn msg;"
+        },
+        // Subflow
+        {
+          id: "s1", type: "subflow",
+          in: [{ wires: [] }],
+          out: [{ wires: [{ id: "s1-cm1", port: 0 }]}]
+        },
+        {
+          id: "s1-cm1",
+          z: "s1",
+          type: "context-monitor",
+          monitoring: [
+            {
+              scope: "flow",
+              flow: ".",
+              key: "$parent.test_flow"
+            }
+          ],
+          wires: []
+        }
+      ];
+      helper.load([monitorNode, functionNode], flow, function () {
+        initContext(function () {
+
+          let fn = helper.getNode("fn1");
+          let h1 = helper.getNode("n2");
+
+          h1.on("input", function (msg) {
+            try {
+              delete msg["_msgid"];
+              msg.should.eql({
+                topic: "test_flow",
+                payload: "value",
+                monitoring: {
+                  source: "fn1",
+                  flow: "t0",
+                  scope: "flow",
+                  key: "test_flow"
+                }
+              })
+              done();
+            } catch (err) {
+              done(err);
+            }
+          });
+          fn.receive({ payload: "" });
+        });
+      });
+    });
+
+    it('should create set message when node scope context is written to by function node in subflow', function (done) {
+      var flow = [
+        { id: "t0", type: "tab" },
+        { id: "n1", x: 10, y: 10, z: "t0", type: "subflow:s1", wires: [["n2"]] },
+        { id: "n2", x: 10, y: 10, z: "t0", type: "helper", wires: [] },
+        {
+          id: "fn1", z: "t0", type: "function",
+          func: "global.set(\"test_global\", \"value\");\nreturn msg;"
+        },
+        // Subflow
+        {
+          id: "s1", type: "subflow",
+          in: [{ wires: [] }],
+          out: [{ wires: [{ id: "s1-cm1", port: 0 }]}]
+        },
+        {
+          id: "s1-fn2", z: "s1", type: "function",
+          func: "context.set(\"test_node\", \"value\");\nreturn msg;",
+        },
+        {
+          id: "s1-cm1",
+          z: "s1",
+          type: "context-monitor",
+          monitoring: [
+            {
+              scope: "node",
+              flow: ".",
+              node: "s1-fn2",
+              key: "test_node"
+            }
+          ],
+          wires: []
+        }
+      ];
+      helper.load([monitorNode, functionNode], flow, function () {
+        initContext(function () {
+
+          let fn = helper.getNode("n1-s1-fn2");
+          let h1 = helper.getNode("n2");
+
+          h1.on("input", function (msg) {
+            try {
+              delete msg["_msgid"];
+              msg.should.eql({
+                topic: "test_node",
+                payload: "value",
+                monitoring: {
+                  scope: "node",
+                  flow: "n1",
+                  node: "s1-fn2",
+                  key: "test_node",
+                  source: "s1-fn2"
+                }
+              })
+              done();
+            } catch (err) {
+              done(err);
+            }
+          });
+          fn.receive({ payload: "" });
+        });
+      });
+    });
   });
 });

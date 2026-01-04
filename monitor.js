@@ -169,6 +169,17 @@ module.exports = function(RED) {
 
             let key = data.key;
 
+            // resolve $parent to true flow id ... if the monitor sits in a subflow!
+            if ("flow" == data.scope && key.startsWith("$parent.")) {
+                let fl = RED.nodes.getNode(data.flow);
+                if ("subflow" == fl?.TYPE) {
+                    // This might not create the expected result, if .parent is not a flow!
+                    // ... but a group or another subflow!
+                    // >> Fix it if someone asks for.
+                    data.flow = fl.parent.id;
+                    data.key = key = key.substring("$parent.".length);
+                }
+            }
 
             // support for complex keys
             // test["mm"].value becomes test.mm.value

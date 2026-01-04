@@ -81,6 +81,13 @@ You may define a setup that doesn't monitor the (whole) object, but only one of 
 
 Such a monitor will react _only_, when this property and - if it's an object - its child properties are written to.
 
+### Subflow considerations
+You may use this node in [subflows](https://nodered.org/docs/user-guide/editor/workspace/subflows).
+
+Monitoring a `Node` scope context of a node within a subflow is only supported if both nodes (the context monitor and the node to be monitored) belong to the same subflow. Please select `Current Flow` when defining the monitoring context reference.
+
+Please be aware that all instances of a subflow commonly share a single `Flow` scope context. According to the [Node-RED documentation](https://nodered.org/docs/user-guide/context#context-scopes), you can reference the context of the superior flow by prepending `$parent` to the context key.
+
 ### Handling of context definition issues
 If you edit this node's properties, it ensures that the context reference defined is always valid.
 By _copy/paste_-ing a node already configured its configuration yet might become invalid. Same applies if you delete flows or nodes that were referenced earlier.

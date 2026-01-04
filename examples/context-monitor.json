@@ -1,6 +1,107 @@
 [
     {
-        "id": "4980f94dd2c07b62",
+        "id": "6780aa88c7c4d336",
+        "type": "subflow",
+        "name": "context in subflow",
+        "info": "",
+        "category": "",
+        "in": [
+            {
+                "x": 120,
+                "y": 80,
+                "wires": [
+                    {
+                        "id": "a328f1e205c03a15"
+                    }
+                ]
+            }
+        ],
+        "out": [
+            {
+                "x": 330,
+                "y": 160,
+                "wires": [
+                    {
+                        "id": "88f5bf36b88ae76b",
+                        "port": 0
+                    }
+                ]
+            },
+            {
+                "x": 340,
+                "y": 240,
+                "wires": [
+                    {
+                        "id": "88f5bf36b88ae76b",
+                        "port": 1
+                    }
+                ]
+            }
+        ],
+        "env": [],
+        "meta": {},
+        "color": "#DDAA99",
+        "outputLabels": [
+            "context set",
+            "context change"
+        ]
+    },
+    {
+        "id": "a328f1e205c03a15",
+        "type": "function",
+        "z": "6780aa88c7c4d336",
+        "name": "set subflow & node context",
+        "func": "flow.set(\"subflow_flow_test\", \"flow\");\ncontext.set(\"subflow_node_test\", \"node\");\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 300,
+        "y": 80,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "88f5bf36b88ae76b",
+        "type": "context-monitor",
+        "z": "6780aa88c7c4d336",
+        "name": "",
+        "monitoring": [
+            {
+                "scope": "global",
+                "key": "global_test"
+            },
+            {
+                "scope": "flow",
+                "flow": ".",
+                "key": "subflow_flow_test"
+            },
+            {
+                "scope": "flow",
+                "flow": ".",
+                "key": "$parent.flow_test"
+            },
+            {
+                "scope": "node",
+                "flow": ".",
+                "node": "a328f1e205c03a15",
+                "key": "subflow_node_test",
+                "node_label": "set subflow & node context"
+            }
+        ],
+        "tostatus": false,
+        "x": 160,
+        "y": 200,
+        "wires": [
+            [],
+            []
+        ]
+    },
+    {
+        "id": "841613b260a4c5ce",
         "type": "tab",
         "label": "Context Monitoring Example",
         "disabled": false,
@@ -8,9 +109,9 @@
         "env": []
     },
     {
-        "id": "f2874060375785b7",
+        "id": "88cfd03e4a1d674a",
         "type": "inject",
-        "z": "4980f94dd2c07b62",
+        "z": "841613b260a4c5ce",
         "name": "",
         "props": [
             {
@@ -28,34 +129,36 @@
         "topic": "",
         "payload": "",
         "payloadType": "date",
-        "x": 140,
-        "y": 80,
+        "x": 120,
+        "y": 120,
         "wires": [
             [
-                "c096819863211fb9"
+                "ee1a6dc083b2db28",
+                "5384329446d6d4bd"
             ]
         ]
     },
     {
-        "id": "db53945bf5a57413",
+        "id": "cc42435c8c1e18d2",
         "type": "debug",
-        "z": "4980f94dd2c07b62",
-        "name": "debug 88",
+        "z": "841613b260a4c5ce",
+        "name": "timestamp",
         "active": true,
         "tosidebar": true,
         "console": false,
         "tostatus": false,
-        "complete": "false",
+        "complete": "payload",
+        "targetType": "msg",
         "statusVal": "",
         "statusType": "auto",
-        "x": 660,
+        "x": 750,
         "y": 80,
         "wires": []
     },
     {
-        "id": "c096819863211fb9",
+        "id": "ee1a6dc083b2db28",
         "type": "change",
-        "z": "4980f94dd2c07b62",
+        "z": "841613b260a4c5ce",
         "name": "",
         "rules": [
             {
@@ -71,6 +174,20 @@
                 "pt": "global",
                 "to": "hello!",
                 "tot": "str"
+            },
+            {
+                "t": "set",
+                "p": "obj_test",
+                "pt": "flow",
+                "to": "{\"x\": 1,\"y\": 2}",
+                "tot": "jsonata"
+            },
+            {
+                "t": "set",
+                "p": "obj_test.y",
+                "pt": "flow",
+                "to": "",
+                "tot": "str"
             }
         ],
         "action": "",
@@ -78,18 +195,18 @@
         "from": "",
         "to": "",
         "reg": false,
-        "x": 300,
+        "x": 310,
         "y": 80,
         "wires": [
             [
-                "b1d17d7418f7a28f"
+                "5bb28494f5abb001"
             ]
         ]
     },
     {
-        "id": "db3afa60f9a080a8",
+        "id": "6af64a8365dc83ca",
         "type": "debug",
-        "z": "4980f94dd2c07b62",
+        "z": "841613b260a4c5ce",
         "name": "debug on set",
         "active": true,
         "tosidebar": true,
@@ -99,41 +216,42 @@
         "targetType": "full",
         "statusVal": "",
         "statusType": "auto",
-        "x": 330,
-        "y": 180,
+        "x": 530,
+        "y": 240,
         "wires": []
     },
     {
-        "id": "b1d17d7418f7a28f",
+        "id": "5bb28494f5abb001",
         "type": "function",
-        "z": "4980f94dd2c07b62",
-        "name": "set node context",
-        "func": "context.set(\"node_test\", 15);\nreturn msg;",
+        "z": "841613b260a4c5ce",
+        "name": "set node & object context",
+        "func": "context.set(\"node_test\", 15);\n\nlet ot = flow.get(\"obj_test\");\not.y = \"17\";\n\nreturn msg;",
         "outputs": 1,
         "timeout": 0,
         "noerr": 0,
         "initialize": "",
         "finalize": "",
         "libs": [],
-        "x": 490,
+        "x": 530,
         "y": 80,
         "wires": [
             [
-                "db53945bf5a57413"
+                "cc42435c8c1e18d2"
             ]
         ]
     },
     {
-        "id": "42634cda458394e4",
+        "id": "3d32ba0d798b3044",
         "type": "context-monitor",
-        "z": "4980f94dd2c07b62",
+        "z": "841613b260a4c5ce",
         "name": "",
         "monitoring": [
             {
                 "scope": "node",
-                "flow": "4980f94dd2c07b62",
-                "node": "b1d17d7418f7a28f",
-                "key": "node_test"
+                "flow": ".",
+                "node": "5bb28494f5abb001",
+                "key": "node_test",
+                "node_label": "set node & object context"
             },
             {
                 "scope": "global",
@@ -141,26 +259,31 @@
             },
             {
                 "scope": "flow",
-                "flow": "4980f94dd2c07b62",
-                "node": "f2874060375785b7",
+                "flow": ".",
                 "key": "flow_test"
+            },
+            {
+                "scope": "flow",
+                "key": "obj_test[\"y\"]",
+                "flow": "."
             }
         ],
-        "x": 140,
-        "y": 200,
+        "tostatus": false,
+        "x": 340,
+        "y": 260,
         "wires": [
             [
-                "db3afa60f9a080a8"
+                "6af64a8365dc83ca"
             ],
             [
-                "12a15905dd250321"
+                "73e8a36b611ff4b5"
             ]
         ]
     },
     {
-        "id": "12a15905dd250321",
+        "id": "73e8a36b611ff4b5",
         "type": "debug",
-        "z": "4980f94dd2c07b62",
+        "z": "841613b260a4c5ce",
         "name": "debug on change",
         "active": true,
         "tosidebar": true,
@@ -170,8 +293,76 @@
         "targetType": "full",
         "statusVal": "",
         "statusType": "auto",
-        "x": 350,
-        "y": 220,
+        "x": 550,
+        "y": 280,
         "wires": []
+    },
+    {
+        "id": "5384329446d6d4bd",
+        "type": "subflow:6780aa88c7c4d336",
+        "z": "841613b260a4c5ce",
+        "name": "",
+        "x": 310,
+        "y": 160,
+        "wires": [
+            [
+                "65585d8fc2043584"
+            ],
+            [
+                "7740234648a5e725"
+            ]
+        ]
+    },
+    {
+        "id": "65585d8fc2043584",
+        "type": "debug",
+        "z": "841613b260a4c5ce",
+        "name": "subflow on set",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 540,
+        "y": 140,
+        "wires": []
+    },
+    {
+        "id": "7740234648a5e725",
+        "type": "debug",
+        "z": "841613b260a4c5ce",
+        "name": "subflow on change",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 550,
+        "y": 180,
+        "wires": []
+    },
+    {
+        "id": "1b20ba795e278a6c",
+        "type": "comment",
+        "z": "841613b260a4c5ce",
+        "name": "If you got a warning that some of these nodes already exist and\\n you decided to import the flow by creating copies of these nodes,\\n the \"Node\" scope context refences might become invalid & might need to be adjusted.",
+        "info": "",
+        "x": 320,
+        "y": 380,
+        "wires": []
+    },
+    {
+        "id": "4569e4487b4e777f",
+        "type": "global-config",
+        "env": [],
+        "modules": {
+            "@ralphwetzel/node-red-context-monitor": "2.0.0"
+        }
     }
 ]
