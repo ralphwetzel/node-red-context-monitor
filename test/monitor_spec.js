@@ -1,3 +1,10 @@
+/*
+    node-red-context-monitor by @ralphwetzel
+    https://github.com/ralphwetzel/node-red-context-monitor
+    License: MIT
+*/
+
+const package = require("../package.json");
 const fs = require('fs-extra');
 const path = require("path");
 const util = require("util");
@@ -32,13 +39,15 @@ let changeNode = require("@node-red/nodes/core/function/15-change.js");
 let functionNode = require("@node-red/nodes/core/function/10-function.js");
 let joinNode = require("@node-red/nodes/core/sequence/17-split.js");
 
-describe('context-monitor Node', function () {
+const flow_manager = require("@node-red/runtime/lib/flows");
+
+describe(`${package.name}`, function () {
 
   beforeEach(function (done) {
     // beforeEach
     helper.startServer(done);
   });
-  
+
   afterEach(function (done) {
     // afterEach
     helper.unload().then(function () {
@@ -49,9 +58,9 @@ describe('context-monitor Node', function () {
       helper.stopServer(done);
     });
   });
-  
+
   function initContext(dont_patch, done) {
-  
+
     if (typeof dont_patch == "function") {
       done = dont_patch;
       dont_patch = false;
@@ -60,7 +69,7 @@ describe('context-monitor Node', function () {
     // restoring original functions
     Context.get = orig_context_get
     Context.getFlowContext = orig_get_flow_context;
-    
+
     if (!dont_patch) {
       patch_context();
     }
@@ -81,7 +90,7 @@ describe('context-monitor Node', function () {
   }
 
   function patch_context() {
-    
+
     // patching into getContext (exported as 'get')
     Context.get = function (nodeId, flowId) {
       let context = orig_context_get(nodeId, flowId);
@@ -93,7 +102,7 @@ describe('context-monitor Node', function () {
       let flow_context = orig_get_flow_context(flowId, parentFlowId);
       return monitor.create_wrapper(flowId, undefined, flow_context);
     }
-  
+
   }
 
   describe('Node setup', function () {
@@ -114,7 +123,11 @@ describe('context-monitor Node', function () {
 
     it('should create monitor entry for global context', function (done) {
       var flow = [{
+        id: "f1",
+        type: "tab"
+      }, {
         id: "cm1",
+        z: "f1",
         type: "context-monitor",
         name: "ctx monitor",
         monitoring: [{
@@ -145,19 +158,22 @@ describe('context-monitor Node', function () {
     });
 
     it('should create only one monitor entry for same context keys (single node)', function (done) {
-      var flow = [
-        {
-          id: "cm1",
-          type: "context-monitor",
-          name: "ctx monitor",
-          monitoring: [{
-            scope: "global",
-            key: "test_global"
-          }, {
-            scope: "global",
-            key: "test_global"
-          }]
-        }];
+      var flow = [{
+        id: "f1",
+        type: "tab"
+      }, {
+        id: "cm1",
+        z: "f1",
+        type: "context-monitor",
+        name: "ctx monitor",
+        monitoring: [{
+          scope: "global",
+          key: "test_global"
+        }, {
+          scope: "global",
+          key: "test_global"
+        }]
+      }];
 
       helper.load(monitorNode, flow, function () {
         var cm1 = helper.getNode("cm1");
@@ -187,24 +203,28 @@ describe('context-monitor Node', function () {
     });
 
     it('should create only one monitor entry for same context keys (two nodes)', function (done) {
-      var flow = [
-        {
-          id: "cm1",
-          type: "context-monitor",
-          name: "ctx monitor",
-          monitoring: [{
-            scope: "global",
-            key: "test_global"
-          }]
-        }, {
-          id: "cm2",
-          type: "context-monitor",
-          name: "ctx monitor",
-          monitoring: [{
-            scope: "global",
-            key: "test_global"
-          }]
-        }];
+      var flow = [{
+        id: "f1",
+        type: "tab"
+      }, {
+        id: "cm1",
+        z: "f1",
+        type: "context-monitor",
+        name: "ctx monitor",
+        monitoring: [{
+          scope: "global",
+          key: "test_global"
+        }]
+      }, {
+        id: "cm2",
+        z: "f1",
+        type: "context-monitor",
+        name: "ctx monitor",
+        monitoring: [{
+          scope: "global",
+          key: "test_global"
+        }]
+      }];
 
       helper.load(monitorNode, flow, function () {
         var cm1 = helper.getNode("cm1");
@@ -234,19 +254,22 @@ describe('context-monitor Node', function () {
     });
 
     it('should create different monitor entries for different context keys (single node)', function (done) {
-      var flow = [
-        {
-          id: "cm1",
-          type: "context-monitor",
-          name: "ctx monitor",
-          monitoring: [{
-            scope: "global",
-            key: "test_global"
-          }, {
-            scope: "global",
-            key: "test_global_2"
-          }]
-        }];
+      var flow = [{
+        id: "f1",
+        type: "tab"
+      }, {
+        id: "cm1",
+        z: "f1",
+        type: "context-monitor",
+        name: "ctx monitor",
+        monitoring: [{
+          scope: "global",
+          key: "test_global"
+        }, {
+          scope: "global",
+          key: "test_global_2"
+        }]
+      }];
 
       helper.load(monitorNode, flow, function () {
         var cm1 = helper.getNode("cm1");
@@ -275,24 +298,28 @@ describe('context-monitor Node', function () {
     });
 
     it('should create different monitor entries for different context keys (two nodes)', function (done) {
-      var flow = [
-        {
-          id: "cm1",
-          type: "context-monitor",
-          name: "ctx monitor",
-          monitoring: [{
-            scope: "global",
-            key: "test_global"
-          }]
-        }, {
-          id: "cm2",
-          type: "context-monitor",
-          name: "ctx monitor",
-          monitoring: [{
-            scope: "global",
-            key: "test_global_2"
-          }]
-        }];
+      var flow = [{
+        id: "f1",
+        type: "tab"
+      }, {
+        id: "cm1",
+        z: "f1",
+        type: "context-monitor",
+        name: "ctx monitor",
+        monitoring: [{
+          scope: "global",
+          key: "test_global"
+        }]
+      }, {
+        id: "cm2",
+        z: "f1",
+        type: "context-monitor",
+        name: "ctx monitor",
+        monitoring: [{
+          scope: "global",
+          key: "test_global_2"
+        }]
+      }];
 
       helper.load(monitorNode, flow, function () {
         var cm1 = helper.getNode("cm1");
@@ -326,6 +353,7 @@ describe('context-monitor Node', function () {
         type: "tab"
       }, {
         id: "cm1",
+        z: "f1",
         type: "context-monitor",
         name: "ctx monitor",
         monitoring: [{
@@ -412,6 +440,7 @@ describe('context-monitor Node', function () {
         }]
       }, {
         id: "h1",
+        z: "f1",
         type: "helper"
       }];
 
@@ -455,6 +484,7 @@ describe('context-monitor Node', function () {
         }]
       }, {
         id: "h1",
+        z: "f1",
         type: "helper"
       }];
 
@@ -498,6 +528,7 @@ describe('context-monitor Node', function () {
         }]
       }, {
         id: "h1",
+        z: "f1",
         type: "helper"
       }];
 
@@ -524,17 +555,22 @@ describe('context-monitor Node', function () {
       });
     });
   });
-  
+
   describe('Context patch', function () {
 
     it('should return object of type Proxy for Context.get', function (done) {
       var flow = [{
+        id: "f1",
+        type: "tab"
+      }, {
         id: "cm1",
+        z: "f1",
         type: "context-monitor",
         name: "ctx monitor"
       }, {
         "id": "c1",
         "type": "change",
+        "z": "f1",
         "name": "",
         "rules": [
           {
@@ -547,7 +583,7 @@ describe('context-monitor Node', function () {
         ],
         wires: [["h1"]]
       }, {
-        id: "h1", type: "helper", wires: []
+        id: "h1", z: "f1", type: "helper", wires: []
       }];
       helper.load([monitorNode, changeNode], flow, function () {
         initContext(function () {
@@ -569,11 +605,16 @@ describe('context-monitor Node', function () {
 
     it('should return object of type Proxy for Context.getFlowContext', function (done) {
       var flow = [{
+        id: "f1",
+        type: "tab"
+      }, {
         id: "cm1",
+        z: "f1",
         type: "context-monitor",
         name: "ctx monitor"
       }, {
         "id": "c1",
+        z: "f1",
         "type": "change",
         "name": "",
         "rules": [
@@ -587,7 +628,7 @@ describe('context-monitor Node', function () {
         ],
         wires: [["h1"]]
       }, {
-        id: "h1", type: "helper", wires: []
+        id: "h1", z: "f1", type: "helper", wires: []
       }];
       helper.load([monitorNode, changeNode], flow, function () {
         initContext(function () {
@@ -647,7 +688,7 @@ describe('context-monitor Node', function () {
         ],
         wires: [["h1"]]
       }, {
-        id: "h1", type: "helper", wires: []
+        id: "h1", z: "f1", type: "helper", wires: []
       }];
       helper.load([monitorNode, changeNode], flow, function () {
         initContext(function () {
@@ -667,7 +708,6 @@ describe('context-monitor Node', function () {
         });
       });
     });
-
 
     it("should return object of type Proxy if context stored an object; 'get' by function node = sync", function (done) {
       var flow = [{
@@ -701,7 +741,7 @@ describe('context-monitor Node', function () {
         "outputs": 1,
         wires: [["h1"]]
       }, {
-        id: "h1", type: "helper", wires: []
+        id: "h1", z: "f1", type: "helper", wires: []
       }];
       helper.load([monitorNode, changeNode, functionNode], flow, function () {
         initContext(function () {
@@ -762,7 +802,7 @@ describe('context-monitor Node', function () {
         ],
         wires: [["h1"]]
       }, {
-        id: "h1", type: "helper", wires: []
+        id: "h1", z: "f1", type: "helper", wires: []
       }];
       helper.load([monitorNode, changeNode], flow, function () {
         initContext(function () {
@@ -815,7 +855,7 @@ describe('context-monitor Node', function () {
         "outputs": 1,
         wires: [["h1"]]
       }, {
-        id: "h1", type: "helper", wires: []
+        id: "h1", z: "f1", type: "helper", wires: []
       }];
       helper.load([monitorNode, changeNode, functionNode], flow, function () {
         initContext(function () {
@@ -851,6 +891,7 @@ describe('context-monitor Node', function () {
         "outputs": 0
       }, {
         id: "cm1",
+        z: "f1",
         type: "context-monitor",
         monitoring: [
           {
@@ -860,7 +901,7 @@ describe('context-monitor Node', function () {
         ],
         wires: [["h1"], []]
       }, {
-        id: "h1", type: "helper", wires: []
+        id: "h1", z: "f1", type: "helper", wires: []
       }];
       helper.load([monitorNode, functionNode], flow, function () {
         initContext(function () {
@@ -900,6 +941,7 @@ describe('context-monitor Node', function () {
         "outputs": 0
       }, {
         id: "cm1",
+        z: "f1",
         type: "context-monitor",
         monitoring: [
           {
@@ -910,7 +952,7 @@ describe('context-monitor Node', function () {
         ],
         wires: [["h1"], []]
       }, {
-        id: "h1", type: "helper", wires: []
+        id: "h1", z: "f1", type: "helper", wires: []
       }];
       helper.load([monitorNode, functionNode], flow, function () {
         initContext(function () {
@@ -963,7 +1005,7 @@ describe('context-monitor Node', function () {
         ],
         wires: [["h1"], []]
       }, {
-        id: "h1", type: "helper", wires: []
+        id: "h1", z: "f1", type: "helper", wires: []
       }];
       helper.load([monitorNode, functionNode], flow, function () {
         initContext(function () {
@@ -1013,6 +1055,7 @@ describe('context-monitor Node', function () {
         ]
       }, {
         id: "cm1",
+        z: "f1",
         type: "context-monitor",
         monitoring: [
           {
@@ -1022,7 +1065,7 @@ describe('context-monitor Node', function () {
         ],
         wires: [["h1"], []]
       }, {
-        id: "h1", type: "helper", wires: []
+        id: "h1", z: "f1", type: "helper", wires: []
       }];
       helper.load([monitorNode, changeNode], flow, function () {
         initContext(function () {
@@ -1070,6 +1113,7 @@ describe('context-monitor Node', function () {
         ]
       }, {
         id: "cm1",
+        z: "f1",
         type: "context-monitor",
         monitoring: [
           {
@@ -1080,7 +1124,7 @@ describe('context-monitor Node', function () {
         ],
         wires: [["h1"], []]
       }, {
-        id: "h1", type: "helper", wires: []
+        id: "h1", z: "f1", type: "helper", wires: []
       }];
       helper.load([monitorNode, changeNode], flow, function () {
         initContext(function () {
@@ -1121,6 +1165,7 @@ describe('context-monitor Node', function () {
         "outputs": 0
       }, {
         id: "cm1",
+        z: "f1",
         type: "context-monitor",
         monitoring: [
           {
@@ -1130,7 +1175,7 @@ describe('context-monitor Node', function () {
         ],
         wires: [[], ["h1"]]
       }, {
-        id: "h1", type: "helper", wires: []
+        id: "h1", z: "f1", type: "helper", wires: []
       }];
       helper.load([monitorNode, functionNode], flow, function () {
         initContext(function () {
@@ -1171,6 +1216,7 @@ describe('context-monitor Node', function () {
         "outputs": 0
       }, {
         id: "cm1",
+        z: "f1",
         type: "context-monitor",
         monitoring: [
           {
@@ -1181,7 +1227,7 @@ describe('context-monitor Node', function () {
         ],
         wires: [[], ["h1"]]
       }, {
-        id: "h1", type: "helper", wires: []
+        id: "h1", z: "f1", type: "helper", wires: []
       }];
       helper.load([monitorNode, functionNode], flow, function () {
         initContext(function () {
@@ -1235,7 +1281,7 @@ describe('context-monitor Node', function () {
         ],
         wires: [[], ["h1"]]
       }, {
-        id: "h1", type: "helper", wires: []
+        id: "h1", z: "f1", type: "helper", wires: []
       }];
       helper.load([monitorNode, functionNode], flow, function () {
         initContext(function () {
@@ -1286,6 +1332,7 @@ describe('context-monitor Node', function () {
         ]
       }, {
         id: "cm1",
+        z: "f1",
         type: "context-monitor",
         monitoring: [
           {
@@ -1295,7 +1342,7 @@ describe('context-monitor Node', function () {
         ],
         wires: [[], ["h1"]]
       }, {
-        id: "h1", type: "helper", wires: []
+        id: "h1", z: "f1", type: "helper", wires: []
       }];
       helper.load([monitorNode, changeNode], flow, function () {
         initContext(function () {
@@ -1344,6 +1391,7 @@ describe('context-monitor Node', function () {
         ]
       }, {
         id: "cm1",
+        z: "f1",
         type: "context-monitor",
         monitoring: [
           {
@@ -1354,7 +1402,7 @@ describe('context-monitor Node', function () {
         ],
         wires: [[], ["h1"]]
       }, {
-        id: "h1", type: "helper", wires: []
+        id: "h1", z: "f1", type: "helper", wires: []
       }];
       helper.load([monitorNode, changeNode], flow, function () {
         initContext(function () {
@@ -1431,8 +1479,8 @@ describe('context-monitor Node', function () {
         "key": "topic",
         "count": "2",
         wires: [["h1"]]
-    }, {
-        id: "h1", type: "helper", wires: []
+      }, {
+        id: "h1", z: "f1", type: "helper", wires: []
       }];
       helper.load([monitorNode, functionNode, joinNode], flow, function () {
         initContext(function () {
@@ -1505,8 +1553,8 @@ describe('context-monitor Node', function () {
         "key": "topic",
         "count": "2",
         wires: [["h1"]]
-    }, {
-        id: "h1", type: "helper", wires: []
+      }, {
+        id: "h1", z: "f1", type: "helper", wires: []
       }];
       helper.load([monitorNode, changeNode, joinNode], flow, function () {
         initContext(function () {
@@ -1525,7 +1573,7 @@ describe('context-monitor Node', function () {
         });
       });
     });
-  
+
     it('should create (two monitors) two change messages when node scope context is written to by function node (= sync)', function (done) {
       var flow = [{
         id: "f1",
@@ -1573,8 +1621,8 @@ describe('context-monitor Node', function () {
         "key": "topic",
         "count": "2",
         wires: [["h1"]]
-    }, {
-        id: "h1", type: "helper", wires: []
+      }, {
+        id: "h1", z: "f1", type: "helper", wires: []
       }];
       helper.load([monitorNode, functionNode, joinNode], flow, function () {
         initContext(function () {
@@ -1647,8 +1695,8 @@ describe('context-monitor Node', function () {
         "key": "topic",
         "count": "2",
         wires: [["h1"]]
-    }, {
-        id: "h1", type: "helper", wires: []
+      }, {
+        id: "h1", z: "f1", type: "helper", wires: []
       }];
       helper.load([monitorNode, changeNode, joinNode], flow, function () {
         initContext(function () {
@@ -1691,7 +1739,7 @@ describe('context-monitor Node', function () {
         ],
         wires: [["h1"], []]
       }, {
-        id: "h1", type: "helper", wires: []
+        id: "h1", z: "f1", type: "helper", wires: []
       }];
       helper.load([monitorNode, functionNode], flow, function () {
         initContext(function () {
@@ -1708,16 +1756,16 @@ describe('context-monitor Node', function () {
               flow: "f1",
               key: "test_object"
             }
-            }, {
-              topic: "test_object.prop",
-              payload: "new",
-              monitoring: {
-                "source": "fn1",
-                scope: "flow",
-                flow: "f1",
-                key: "test_object"
-              }
+          }, {
+            topic: "test_object.prop",
+            payload: "new",
+            monitoring: {
+              "source": "fn1",
+              scope: "flow",
+              flow: "f1",
+              key: "test_object"
             }
+          }
           ]
           h1.on("input", function (msg) {
             try {
@@ -1731,7 +1779,7 @@ describe('context-monitor Node', function () {
               done(err);
             }
           });
-          fn1.context().flow.set("test_object", {"prop": "value"});
+          fn1.context().flow.set("test_object", { "prop": "value" });
           fn1.receive({ payload: "" });
         });
       });
@@ -1760,7 +1808,7 @@ describe('context-monitor Node', function () {
         ],
         wires: [["h1"], []]
       }, {
-        id: "h1", type: "helper", wires: []
+        id: "h1", z: "f1", type: "helper", wires: []
       }];
       helper.load([monitorNode, functionNode], flow, function () {
         initContext(function () {
@@ -1803,7 +1851,7 @@ describe('context-monitor Node', function () {
             }
           });
           // this doesn't trigger, as context key references nested property
-          fn1.context().flow.set("test_object", {"prop": "value"});
+          fn1.context().flow.set("test_object", { "prop": "value" });
           fn1.receive({ payload: "" });
         });
       });
@@ -1820,11 +1868,11 @@ describe('context-monitor Node', function () {
         "name": "",
         "rules": [
           {
-              "t": "set",
-              "p": "test_object.prop",
-              "pt": "flow",
-              "to": "new",
-              "tot": "str"
+            "t": "set",
+            "p": "test_object.prop",
+            "pt": "flow",
+            "to": "new",
+            "tot": "str"
           }
         ]
       }, {
@@ -1840,7 +1888,7 @@ describe('context-monitor Node', function () {
         ],
         wires: [["h1"], []]
       }, {
-        id: "h1", type: "helper", wires: []
+        id: "h1", z: "f1", type: "helper", wires: []
       }];
       helper.load([monitorNode, changeNode], flow, function () {
         initContext(function () {
@@ -1873,11 +1921,12 @@ describe('context-monitor Node', function () {
             }
           });
           // this doesn't trigger, as context key references nested property
-          c1.context().flow.set("test_object", {"prop": "value"});
+          c1.context().flow.set("test_object", { "prop": "value" });
           c1.receive({ payload: "" });
         });
       });
     });
+  });
 
   });
 });
