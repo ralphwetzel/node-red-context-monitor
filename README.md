@@ -80,3 +80,8 @@ You may define a setup that doesn't monitor the (whole) object, but only one of 
     style="min-width: 474px; width: 474px; align: center; border: 1px solid lightgray;"/>
 
 Such a monitor will react _only_, when this property and - if it's an object - its child properties are written to.
+
+### Handling of context definition issues
+If you edit this node's properties, it ensures that the context reference defined is always valid.
+By _copy/paste_-ing a node already configured its configuration yet might become invalid. Same applies if you delete flows or nodes that were referenced earlier.
+To ensure the setup, the node does a lazy validation of the context reference definition - when editing its properties and when it is (re)launched. You yet won't get a "red triangle" even if the reference became invalid - to allow a smooth flow editing experience.
