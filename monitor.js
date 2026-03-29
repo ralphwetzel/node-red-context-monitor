@@ -218,14 +218,57 @@ module.exports = function(RED) {
             node.monitoring.push(ctx);
 
             if (!set_cache[ctx]) {
-                set_cache[ctx] = [];
+                set_cache[ctx] = {
+                    nodes: [],
+                    next: []
+                };
             }
 
-            set_cache[ctx].push({
+            set_cache[ctx].nodes.push({
                 "id": node.id,
-                "data": data
+                "data": data,
             });
-        })
+        });
+
+        // Postprocessing of the set_cache:
+        // Identify the "kids" of each entry, i.e. the entries that are more specific (have more key parts) but share the same prefix.
+        // Create a tree like structure to walk through if the value set to the context is an object!
+        for (const c in set_cache) {
+
+            let kids = [];
+            let depth = 0;
+            const cc = c.split(".");
+
+            for (const entry in set_cache) {
+                const ee = entry.split(".");
+
+                const lcc = cc.length;
+                const lee = ee.length;
+
+                if (lee > lcc && ee.slice(0, lcc).join(".") == cc.join(".")) {
+                    let d = lee - lcc;
+
+                    // init depth with the first found entry
+                    if (!depth) {
+                        depth = d;
+                    }
+
+                    // if depth is already set, only consider entries with the same or less depth
+                    if (d > depth) continue;
+
+                    // if we found an entry with less depth, reset the kids list & update the depth
+                    if (depth < d) {
+                        depth = d;
+                        kids = [];
+                    }
+
+                    kids.push(entry);
+                }
+            }
+
+            set_cache[c].next = kids;
+
+        }
 
         node.on("input", function(msg, send, done) {
             
