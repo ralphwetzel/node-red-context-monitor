@@ -135,6 +135,8 @@ module.exports = function(RED) {
 
         scopes.forEach( data => {
 
+            if (data.key && "string" === typeof data.key && data.key.length<1) return;
+
             // Let's validate the given monitoring context first...
             switch (data.scope) {
                 case "node": {
@@ -185,13 +187,16 @@ module.exports = function(RED) {
             // test["mm"].value becomes test.mm.value
             try {
                 let key_parts = RED.util.normalisePropertyExpression(key);
+                // It's the job of the editor ui to ensure keys are valid!
+                // Thus this shall never happen; in consequence, it's ok to silenty return here.
                 for (i=0; i<key_parts.length; i++) {
                     if (Array.isArray(key_parts[i])) {
                         return;
                     }
                 }
                 key = key_parts.join('.');
-            } catch {
+            } catch (err) {
+                node.warn(`Failed to parse context reference definition '${key}': ${err.message}`)
                 return;
             }
 
