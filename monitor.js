@@ -42,7 +42,7 @@ function scan_for_require_path(req_path) {
             break;
         }
 
-        let cc = entry.children;
+        let cc = entry.children ?? [];
         cc.forEach(c => {
             if (!(c.id in require_cache)) {
                 require_cache[c.id] = c;
@@ -103,6 +103,72 @@ if (process.env.NODE_RED_HOME && !process.env.TESTING_CONTEXT_MONITOR) {
 // *****
 
 // *****
+// Postprocessing of the set_cache:
+// Identify the "kids" of each entry, i.e. the entries that are more specific (have more key parts) but share the same prefix.
+// Create a tree like structure to walk through if the value set to the context is an object!
+
+function create_kids() {
+
+    for (const c in set_cache) {
+
+        let kids = [];
+        let depth = 0;
+        const cc = c.split(".");
+
+        for (const entry in set_cache) {
+            const ee = entry.split(".");
+
+            const lcc = cc.length;
+            const lee = ee.length;
+
+            if (lee > lcc && ee.slice(0, lcc).join(".") == cc.join(".")) {
+                let d = lee - lcc;
+
+                // init depth with the first found entry
+                if (!depth) {
+                    depth = d;
+                }
+
+                // if depth is already set, only consider entries with the same or less depth
+                if (d > depth) continue;
+
+                // if we found an entry with less depth, reset the kids list & update the depth
+                if (depth < d) {
+                    depth = d;
+                    kids = [];
+                }
+
+                kids.push(entry);
+            }
+        }
+
+        // insert, append or remove the _kids data ...
+        // ... and prevent holes in the set_cache[c] array!
+        const index = set_cache[c].findIndex(n => n.id == "_kids");
+
+        if (kids.length > 0) {
+
+            let newKids = {
+                "id": "_kids",
+                "data": kids
+            }
+
+            if (index < 0) {
+                // new kids
+                set_cache[c].push(newKids);
+            } else {
+                // replace kids
+                set_cache[c][index] = newKids;
+            }
+        } else {
+            // no kids, remove the _kids entry if exists
+            if (index > -1) set_cache[c].splice(index, 1);
+        }
+    }
+
+};
+
+// *****
 // node-red-context-monitor
 
 module.exports = function(RED) {
@@ -131,7 +197,7 @@ module.exports = function(RED) {
             if (n.z) {
                 flows[n.z] ??= true;
             }
-        })
+        });
 
         scopes.forEach( data => {
 
@@ -218,13 +284,10 @@ module.exports = function(RED) {
             node.monitoring.push(ctx);
 
             if (!set_cache[ctx]) {
-                set_cache[ctx] = {
-                    nodes: [],
-                    next: []
-                };
+                set_cache[ctx] = [];
             }
 
-            set_cache[ctx].nodes.push({
+            set_cache[ctx].push({
                 "id": node.id,
                 "data": data,
             });
@@ -233,42 +296,7 @@ module.exports = function(RED) {
         // Postprocessing of the set_cache:
         // Identify the "kids" of each entry, i.e. the entries that are more specific (have more key parts) but share the same prefix.
         // Create a tree like structure to walk through if the value set to the context is an object!
-        for (const c in set_cache) {
-
-            let kids = [];
-            let depth = 0;
-            const cc = c.split(".");
-
-            for (const entry in set_cache) {
-                const ee = entry.split(".");
-
-                const lcc = cc.length;
-                const lee = ee.length;
-
-                if (lee > lcc && ee.slice(0, lcc).join(".") == cc.join(".")) {
-                    let d = lee - lcc;
-
-                    // init depth with the first found entry
-                    if (!depth) {
-                        depth = d;
-                    }
-
-                    // if depth is already set, only consider entries with the same or less depth
-                    if (d > depth) continue;
-
-                    // if we found an entry with less depth, reset the kids list & update the depth
-                    if (depth < d) {
-                        depth = d;
-                        kids = [];
-                    }
-
-                    kids.push(entry);
-                }
-            }
-
-            set_cache[c].next = kids;
-
-        }
+        create_kids();
 
         node.on("input", function(msg, send, done) {
             
@@ -312,6 +340,7 @@ module.exports = function(RED) {
 
             done();
         });
+
         node.on("close",function() {
             // remove this nodes ctx(s) from the trigger list
             node.monitoring.forEach( ctx => {
@@ -319,12 +348,19 @@ module.exports = function(RED) {
                 if (sc) {
                     set_cache[ctx] = sc.filter( n => {
                         return n.id !== node.id;
-                    })
-                    if (set_cache[ctx].length < 1) {
+                    });
+
+                    if (set_cache[ctx].length === 0) {
+                        delete set_cache[ctx];
+                    } else if (set_cache[ctx].length === 1 && set_cache[ctx][0]?.id == "_kids") {
                         delete set_cache[ctx];
                     }
                 }
-            })
+            });
+            
+            // re-process the tree structure!
+            // console.log("Re-processing tree structure @ close...");
+            create_kids();
 
             if (timeout) {
                 clearTimeout(timeout);
