@@ -41,6 +41,32 @@ let joinNode = require("@node-red/nodes/core/sequence/17-split.js");
 
 const flow_manager = require("@node-red/runtime/lib/flows");
 
+function log(...args) {
+  const seen = new WeakSet();
+
+  function replacer(key, value) {
+    if (typeof value === "object" && value !== null) {
+      if (seen.has(value)) return "[Circular]";
+      seen.add(value);
+    } else if (typeof value === "function") {
+      return `[Function: ${value.name || "anonymous"}]`;
+    }
+    return value;
+  }
+
+  const output = args
+    .map(arg => {
+      if (typeof arg === "object" && arg !== null) {
+        return JSON.stringify(arg, replacer, 2);
+      } else {
+        return String(arg);
+      }
+    })
+    .join(" ");
+
+  console.log(output);
+}
+
 describe(`${package.name}`, function () {
 
   beforeEach(function (done) {
