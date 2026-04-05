@@ -14,7 +14,7 @@ It sends a dedicated message on a separate port in case it detects that the valu
 The message sent will carry the current value of the context as `msg.payload`, the context key as `msg.topic`.
 
 Monitoring details will be provided as `msg.monitoring`:
-* The monitoring setup: `scope` & `key` always, `flow` (id) / `node` (id) if applicable.
+* The monitoring setup: `scope` & `key` always, `flow` (id), `node` (id) and `store` (name) if applicable.
 * The id of the node that wrote to the context as `source`.
 
 The message sent off the change port carries an additional property in `msg.monitoring`:
@@ -52,7 +52,13 @@ You may of course define a setup that monitors objects stored in context.
 
 If you create a reference to this object (stored in context) and write to its properties, this node issues its messages accordingly.
 
-> Disclaimer: Monitoring changes to elements of an `Array` currently is not supported.
+Monitoring changes to elements of an `Array` is supported as well.
+
+### Support for context stores
+Please notice that this monitor is '[context store](https://nodered.org/docs/user-guide/context#context-stores)' - aware: If you've defined - next to the `default` store - additional context stores (in your `settings.js`), you may create a reference definition with a context store information.
+
+<img alt="store" src="https://raw.githubusercontent.com/ralphwetzel/node-red-context-monitor/main/resources/store.png"
+    style="min-width: 474px; width: 474px; align: center; border: 1px solid lightgray;"/>
 
 #### Example:
 Monitoring context definition:
