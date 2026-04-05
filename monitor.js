@@ -235,7 +235,10 @@ module.exports = function(RED) {
                 data.flow = node.z;
             }
 
-            let key = data.key;
+            // split the store from the key
+            let parts = RED.util.parseContextStore(data.key);
+            let key = parts.key;
+            let store = parts.store;
 
             // resolve $parent to true flow id ... if the monitor sits in a subflow!
             if ("flow" == data.scope && key.startsWith("$parent.")) {
@@ -279,6 +282,10 @@ module.exports = function(RED) {
                     break;
                 default:
                     return;
+            }
+
+            if (store) {
+                ctx = `${store}://${ctx}`;
             }
 
             node.monitoring.push(ctx);

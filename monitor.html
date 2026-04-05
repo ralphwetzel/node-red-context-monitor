@@ -64,7 +64,11 @@
             }
             let key = this.monitoring[0]?.key;
             if (key && key.length > 0) {
-                return key;
+                let parts = RED.utils.parseContextKey(key);
+                if (parts.store && parts.store !== RED.settings.context.default) {
+                    return `${parts.key} @ ${parts.store}`;
+                } 
+                return parts.key;
             }
             return "context: 0";
         },
@@ -200,6 +204,12 @@
                     $(`<label for="context-scope-key-${index}" style="margin-left:10px; width: 90px">Key: </label>`).appendTo(line_key);
                     $(`<input type="text" id="context-scope-key-${index}" placeholder="Context Variable Key">`).appendTo(line_key);
                     line_key.appendTo(fragment);
+
+                    let line_storage = $('<div class="form-row" style="margin-bottom: 6px">');
+                    // $(`<label for="context-scope-key-${index}"" style="margin-left:10px; width: 90px"><i class="fa fa-tag"></i> Key</label>`).appendTo(line_key);
+                    $(`<label for="context-scope-storage-${index}" style="margin-left:10px; width: 90px">Key: </label>`).appendTo(line_storage);
+                    $(`<input type="text" id="context-scope-storage-${index}" placeholder="Context Variable Key">`).appendTo(line_storage);
+                    line_storage.appendTo(fragment);
 
                     container[0].appendChild(fragment);
 
@@ -407,24 +417,65 @@
 
                     });
 
-                    $(`#context-scope-key-${index}`).change( function () {
-                        if (!_initing) {
-                            data.key = $(this).val();
-                            node.dirty = true;
-                        }
-                        $(this).toggleClass("input-error", !validate_context_key($(this).val()));
+                    // $(`#context-scope-key-${index}`).change( function () {
+                    //     if (!_initing) {
+                    //         data.key = $(this).val();
+                    //         node.dirty = true;
+                    //     }
+                    //     $(this).toggleClass("input-error", !validate_context_key($(this).val()));
+                    // });
+
+                    // $(`#context-scope-key-${index}`).on( "input", function () {
+                    //     $(this).toggleClass("input-error", !validate_context_key($(this).val()));
+                    // });
+
+                    line_key.hide(); //obsolete now...
+
+                    $(`#context-scope-storage-${index}`).typedInput({
+                        type: 'key',
+                        types: [ 'global' ]
                     });
 
-                    $(`#context-scope-key-${index}`).on( "input", function () {
-                        $(this).toggleClass("input-error", !validate_context_key($(this).val()));
-                    });
+                    $(`#context-scope-storage-${index}`).typedInput('type', 'global');
+
+                    $(`#context-scope-storage-${index}`).next().children().first().hide();
+                    $(`#context-scope-storage-${index}`).next().find(".red-ui-typedInput-input").css("padding-left", "6px"); // to align with other keys, that do not have the dropdown button of
+
+                    $(`#context-scope-storage-${index}`).on('change', function(event, type, value) {
+                        if (!_initing) {
+                            data.key = value;
+                            node.dirty = true;
+                        }
+                        // $(this).toggleClass("input-error", !validate_context_key($(this).val()));
+
+                    } );
 
                     // *****
                     // Initialize the form
                     //
 
-                    $(`#context-scope-key-${index}`).val(data.key).prop("disabled", false);
-                    $(`#context-scope-key-${index}`).toggleClass("input-error", !validate_context_key(data.key));
+                    // $(`#context-scope-key-${index}`).val(data.key).prop("disabled", false);
+                    // $(`#context-scope-key-${index}`).toggleClass("input-error", !validate_context_key(data.key));
+
+                    $(`#context-scope-storage-${index}`).typedInput('disable', false);
+                    $(`#context-scope-storage-${index}`).typedInput('value', data.key);
+
+                    // validate the context store
+                    let parts = RED.utils.parseContextKey(data.key);
+                    if (parts.store) {
+                        let found = false;
+                        RED.settings.context.stores.forEach( store => {
+                            if (store === parts.store) {
+                                found = true;
+                            }
+                        });
+                        if (!found) {
+                            let db = $(`#context-scope-storage-${index}`).next().find(".red-ui-typedInput-option-label");
+                            $('<i class="red-ui-typedInput-icon fa fa-database" style="color: red;"></i>').appendTo(db);
+                            let label = $(`#context-scope-storage-${index}`).next().find(".red-ui-typedInput-value-label") //.text(`${parts.store}`).css("color", "red");
+                            $(`<div style="position: absolute; bottom: -2px; right: 5px; font-size: 0.7em; color: red;">${parts.store}</div>`).appendTo(label);
+                        }
+                    }
 
                     if ("global" !== data.scope) {
                         $(`#context-scope-flows-${index}`).typedInput("value", data.flow ?? flow_opts[0]?.value);
