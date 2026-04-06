@@ -318,7 +318,10 @@ module.exports = function(RED) {
 
             if (changed) {
                 // if changed, clone & emit @ second output terminal
-                let m = RED.util.cloneMessage(msg);
+                // Att: Do not use RED.util.cloneMessage(msg)!
+                // This relies on lodash.cloneDeep ... 
+                // and lodash.cloneDeep wrongly changes <empty> -> undefined for weak arrays!
+                let m = structuredClone(msg)
                 delete m._msgid;
                 m.monitoring.previous = prev;
                 send([msg, m]);
