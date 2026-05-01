@@ -351,7 +351,7 @@
         "id": "1b20ba795e278a6c",
         "type": "comment",
         "z": "841613b260a4c5ce",
-        "name": "If you got a warning that some of these nodes already exist and\\n you decided to import the flow by creating copies of these nodes,\\n the \"Node\" scope context refences might become invalid & might need to be adjusted.",
+        "name": "If you got a warning that some of these nodes already exist and\\n you decided to import the flow by creating copies of these nodes,\\n the \"Node\" scope context references might become invalid & might need to be adjusted.",
         "info": "",
         "x": 320,
         "y": 380,
