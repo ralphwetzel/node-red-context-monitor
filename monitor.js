@@ -133,7 +133,7 @@ function create_kids() {
                 if (d > depth) continue;
 
                 // if we found an entry with less depth, reset the kids list & update the depth
-                if (depth < d) {
+                if (d < depth) {
                     depth = d;
                     kids = [];
                 }
