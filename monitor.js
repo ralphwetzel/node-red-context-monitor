@@ -258,7 +258,7 @@ module.exports = function(RED) {
                 let key_parts = RED.util.normalisePropertyExpression(key);
                 // It's the job of the editor ui to ensure keys are valid!
                 // Thus this shall never happen; in consequence, it's ok to silenty return here.
-                for (i=0; i<key_parts.length; i++) {
+                for (let i=0; i<key_parts.length; i++) {
                     if (Array.isArray(key_parts[i])) {
                         return;
                     }
