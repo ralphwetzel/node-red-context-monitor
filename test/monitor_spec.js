@@ -1851,7 +1851,7 @@ describe(`${package.name}`, function () {
       });
     });
 
-    it('should create set message when writing to object reference stored in flow context, complex key, by function node (= sync)', function (done) {
+    it('should create set messages when parent object is initialized and nested property is later changed, by function node (= sync)', function (done) {
       var flow = [{
         id: "f1",
         type: "tab"
@@ -1883,16 +1883,16 @@ describe(`${package.name}`, function () {
 
           let cnt = 0;
           let expect = [
-            // {
-            // topic: "test_object",
-            // payload: { "prop": "value" },
-            // monitoring: {
-            //   "source": "fn1",
-            //   scope: "flow",
-            //   flow: "f1",
-            //   key: "test_object"
-            // }
-            // }, 
+            {
+              topic: "test_object.prop",
+              payload: "value",
+              monitoring: {
+                "source": "fn1",
+                scope: "flow",
+                flow: "f1",
+                key: "test_object['prop']"
+              }
+            },
             {
               topic: "test_object.prop",
               payload: "new",
@@ -1916,14 +1916,14 @@ describe(`${package.name}`, function () {
               done(err);
             }
           });
-          // this doesn't trigger, as context key references nested property
+          // This initializes the parent object and should trigger the nested-property monitor.
           fn1.context().flow.set("test_object", { "prop": "value" });
           fn1.receive({ payload: "" });
         });
       });
     });
 
-    it('should create set message when writing to property of object stored in flow context, by change node (= async)', function (done) {
+    it('should create set messages when parent object is initialized and nested property is later changed, by change node (= async)', function (done) {
       var flow = [{
         id: "f1",
         type: "tab"
@@ -1965,6 +1965,16 @@ describe(`${package.name}`, function () {
           let expect = [
             {
               topic: "test_object.prop",
+              payload: "value",
+              monitoring: {
+                "source": "c1",
+                scope: "flow",
+                flow: "f1",
+                key: "test_object['prop']"
+              }
+            },
+            {
+              topic: "test_object.prop",
               payload: "new",
               monitoring: {
                 "source": "c1",
@@ -1986,7 +1996,7 @@ describe(`${package.name}`, function () {
               done(err);
             }
           });
-          // this doesn't trigger, as context key references nested property
+          // This initializes the parent object and should trigger the nested-property monitor.
           c1.context().flow.set("test_object", { "prop": "value" });
           c1.receive({ payload: "" });
         });
