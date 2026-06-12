@@ -269,7 +269,6 @@
                                     break;
                                 }
                                 default: {
-                                    console.log("@default");
                                     label = data.node_label ?? "Unknown Node";
                                     line_node_missing.show();
                                     data.ok.node = false;
@@ -656,3 +655,5 @@ To monitor a `Node` scope context, set the scope to `Node`, then select flow & n
     style="min-width: 474px; width: 474px; align: center; border: 1px solid lightgray;"/>
 
 > Hint: This node doesn't create a context. It just tries to reference to those already existing. If you're referencing a non-existing context, no harm will happen.
+
+</script>
