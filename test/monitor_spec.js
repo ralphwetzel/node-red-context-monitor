@@ -584,6 +584,46 @@ describe(`${package.name}`, function () {
 
   describe('Context patch', function () {
 
+    it('should use the async callback signature when wrapper.set() receives a callback', function (done) {
+      const fakeRED = {
+        nodes: {
+          getNode: () => null
+        },
+        util: {
+          cloneMessage: (msg) => msg,
+          normalisePropertyExpression: (key) => [key]
+        }
+      };
+
+      const fakeMonitors = {};
+      monitor.init(fakeRED, fakeMonitors);
+
+      const fakeContext = {
+        get: function () {
+          return undefined;
+        },
+        set: function (key, value, storage, callback) {
+          if (typeof callback !== 'function') {
+            return done(new Error('Expected callback-based context.set() to be invoked'));
+          }
+
+          setImmediate(() => callback(null, 'ok'));
+        }
+      };
+
+      const wrapper = monitor.create_wrapper('n1', undefined, fakeContext);
+
+      wrapper.set('test_key', 'value', function (err, res) {
+        try {
+          should.not.exist(err);
+          res.should.eql('ok');
+          done();
+        } catch (assertErr) {
+          done(assertErr);
+        }
+      });
+    });
+
     it('should return object of type Proxy for Context.get', function (done) {
       var flow = [{
         id: "f1",
