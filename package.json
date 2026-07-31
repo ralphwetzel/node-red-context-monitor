@@ -1,6 +1,6 @@
 {
   "name": "@ralphwetzel/node-red-context-monitor",
-  "version": "2.1.2",
+  "version": "2.2.0",
   "description": "A Node-RED node to monitor a context.",
   "main": "monitor.js",
   "scripts": {
@@ -18,6 +18,9 @@
     "version": ">=3.0.0",
     "nodes": {
       "context-monitor": "monitor.js"
+    },
+    "plugins": {
+      "context-monitor": "panel.html"
     }
   },
   "author": "Ralph Wetzel",
