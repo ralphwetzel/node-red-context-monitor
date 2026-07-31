@@ -584,6 +584,78 @@ describe(`${package.name}`, function () {
 
   describe('Context patch', function () {
 
+    function createFakeRED() {
+      return {
+        log: {
+          warn: () => {}
+        },
+        nodes: {
+          getNode: () => null
+        },
+        comms: {
+          publish: () => {}
+        },
+        util: {
+          cloneMessage: (msg) => msg,
+          normalisePropertyExpression: (key) => [key]
+        }
+      };
+    }
+
+    function createFakeContext(initialStore) {
+      const store = Object.assign({}, initialStore);
+
+      return {
+        store,
+        get: function (key, storage, callback) {
+          if (typeof storage === 'function') {
+            callback = storage;
+          }
+
+          const value = Array.isArray(key) ? key.map(k => store[k]) : store[key];
+
+          if (callback) {
+            return callback(undefined, value);
+          }
+
+          return value;
+        },
+        set: function (key, value, storage, callback) {
+          if (typeof storage === 'function') {
+            callback = storage;
+          }
+
+          if (Array.isArray(key)) {
+            const values = Array.isArray(value) ? value : [value];
+            key.forEach((singleKey, index) => {
+              store[singleKey] = index < values.length ? values[index] : null;
+            });
+          } else {
+            store[key] = value;
+          }
+
+          if (callback) {
+            return callback(undefined);
+          }
+        },
+        keys: function () {
+          return Object.keys(store);
+        }
+      };
+    }
+
+    function createWrappedFakeContext(initialStore, nodeId) {
+      const fakeRED = createFakeRED();
+      const fakeContext = createFakeContext(initialStore);
+      monitor.init(fakeRED, {});
+
+      return {
+        RED: fakeRED,
+        context: fakeContext,
+        wrapper: monitor.create_wrapper(nodeId || `test-${Date.now()}-${Math.random()}`, undefined, fakeContext)
+      };
+    }
+
     it('should use the async callback signature when wrapper.set() receives a callback', function (done) {
       const fakeRED = {
         nodes: {
@@ -622,6 +694,122 @@ describe(`${package.name}`, function () {
           done(assertErr);
         }
       });
+    });
+
+    it('should not persist proxy chains for repeated get-modify-set cycles', function () {
+      const originalLog = console.log;
+      console.log = () => {};
+
+      try {
+        const { context, wrapper } = createWrappedFakeContext({
+          k: { value: 0 }
+        }, 'proxy-cycle');
+
+        for (let i = 0; i < 10000; i++) {
+          const value = wrapper.get('k');
+          value.value = i;
+          wrapper.set('k', value);
+        }
+
+        util.types.isProxy(context.store.k).should.eql(false);
+        context.store.k.value.should.eql(9999);
+        (() => context.store.k.value).should.not.throw();
+      } finally {
+        console.log = originalLog;
+      }
+    });
+
+    it('should not persist proxies for repeated nested mutation get-set cycles', function () {
+      const originalLog = console.log;
+      console.log = () => {};
+
+      try {
+        const { context, wrapper } = createWrappedFakeContext({
+          k: { a: { b: 0 } }
+        }, 'nested-proxy-cycle');
+
+        for (let i = 0; i < 10000; i++) {
+          const value = wrapper.get('k');
+          value.a.b = i;
+          wrapper.set('k', value);
+        }
+
+        util.types.isProxy(context.store.k).should.eql(false);
+        util.types.isProxy(context.store.k.a).should.eql(false);
+        context.store.k.a.b.should.eql(9999);
+        (() => context.store.k.a.b).should.not.throw();
+      } finally {
+        console.log = originalLog;
+      }
+    });
+
+    it('should unwrap direct proxy insertion into a stored object property', function () {
+      const originalLog = console.log;
+      console.log = () => {};
+
+      try {
+        const { context, wrapper } = createWrappedFakeContext({
+          a: { child: null },
+          b: { value: 1 }
+        }, 'direct-object-insert');
+
+        wrapper.get('a').child = wrapper.get('b');
+
+        util.types.isProxy(context.store.a.child).should.eql(false);
+        context.store.a.child.should.equal(context.store.b);
+      } finally {
+        console.log = originalLog;
+      }
+    });
+
+    it('should unwrap direct proxy insertion via mutating array methods', function () {
+      const originalLog = console.log;
+      console.log = () => {};
+
+      try {
+        const { context, wrapper } = createWrappedFakeContext({
+          list: [],
+          item: { value: 1 }
+        }, 'direct-array-insert');
+
+        wrapper.get('list').push(wrapper.get('item'));
+
+        context.store.list.length.should.eql(1);
+        util.types.isProxy(context.store.list[0]).should.eql(false);
+        context.store.list[0].should.equal(context.store.item);
+      } finally {
+        console.log = originalLog;
+      }
+    });
+
+    it('should leave composed object containers untouched but allow explicit getRaw for nested proxies', function () {
+      const originalLog = console.log;
+      console.log = () => {};
+
+      try {
+        const { RED, context, wrapper } = createWrappedFakeContext({
+          source: { child: { value: 1 } },
+          target: undefined
+        }, 'composed-object');
+
+        wrapper.set('target', {
+          child: wrapper.get('source').child
+        });
+
+        util.types.isProxy(context.store.target).should.eql(false);
+        util.types.isProxy(context.store.target.child).should.eql(true);
+
+        const getRaw = RED.util.contextMonitor.getRaw;
+        wrapper.set('target', {
+          child: getRaw(wrapper.get('source').child)
+        });
+
+        util.types.isProxy(context.store.target).should.eql(false);
+        util.types.isProxy(context.store.target.child).should.eql(false);
+        context.store.target.child.should.equal(context.store.source.child);
+      } finally {
+        console.log = originalLog;
+      }
     });
 
     it('should return object of type Proxy for Context.get', function (done) {

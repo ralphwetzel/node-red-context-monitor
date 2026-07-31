@@ -54,6 +54,19 @@ If you create a reference to this object (stored in context) and write to its pr
 
 Monitoring changes to elements of an `Array` is supported as well.
 
+### RangeError mitigation strategy
+When composing a new object or array from data stored in context, get the raw value of inserted context object references before storing them. This removes the wrapper used to enable monitoring and prevents proxy chains that can lead to `RangeError: Maximum call stack size exceeded`.
+
+``` javascript
+const getRaw = RED.util.contextMonitor?.getRaw ?? ((value) => value);
+
+flow.set("target", {
+    child: getRaw(flow.get("source").child)
+});
+```
+
+The fallback keeps the code portable: without this monitor installed, `getRaw` is a no-op.
+
 ### Support for context stores
 Please notice that this monitor is '[context store](https://nodered.org/docs/user-guide/context#context-stores)' - aware: If you've defined - next to the `default` store - additional context stores (in your `settings.js`), you may create a reference definition with a context store information.
 
